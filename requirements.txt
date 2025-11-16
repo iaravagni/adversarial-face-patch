@@ -1,0 +1,13 @@
+torch==2.2.2
+torchvision==0.17.2
+facenet-pytorch==2.6.0
+numpy==1.26.4
+pillow==10.2.0
+matplotlib==3.9.4
+scikit-learn==1.6.1
+scipy==1.13.1
+tqdm==4.67.1
+
+# If you use Jupyter notebooks, include these:
+ipykernel==6.31.0
+jupyterlab==4.4.10  # optional

@@ -8,6 +8,5 @@ scikit-learn==1.6.1
 scipy==1.13.1
 tqdm==4.67.1
 
-# If you use Jupyter notebooks, include these:
 ipykernel==6.31.0
-jupyterlab==4.4.10  # optional
+jupyterlab==4.4.10

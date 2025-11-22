@@ -1,26 +1,52 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, ShieldAlert, Upload, User, AlertTriangle, Lock, Unlock } from 'lucide-react';
+import { Shield, ShieldAlert, User, AlertTriangle, Lock, Unlock, Server } from 'lucide-react';
 
 const FaceRecognitionDemo = () => {
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [imageType, setImageType] = useState('raw');
+  const [imageType, setImageType] = useState('raw'); // 'raw' or 'patched'
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [defenseEnabled, setDefenseEnabled] = useState(false);
-  const [uploadedImage, setUploadedImage] = useState(null);
   const [scanLine, setScanLine] = useState(0);
   const [scanProgress, setScanProgress] = useState(0);
   const [gridOverlay, setGridOverlay] = useState(false);
 
-  const preloadedImages = [
-    { id: 1, name: 'Attacker Profile', raw: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23444" width="400" height="400"/%3E%3Ccircle cx="200" cy="150" r="60" fill="%23666"/%3E%3Cellipse cx="200" cy="280" rx="80" ry="100" fill="%23666"/%3E%3Ccircle cx="180" cy="140" r="8" fill="%23222"/%3E%3Ccircle cx="220" cy="140" r="8" fill="%23222"/%3E%3Cpath d="M 180 180 Q 200 190 220 180" stroke="%23222" fill="none" stroke-width="3"/%3E%3C/svg%3E', 
-      patched: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23444" width="400" height="400"/%3E%3Ccircle cx="200" cy="150" r="60" fill="%23666"/%3E%3Cellipse cx="200" cy="280" rx="80" ry="100" fill="%23666"/%3E%3Ccircle cx="180" cy="140" r="8" fill="%23222"/%3E%3Ccircle cx="220" cy="140" r="8" fill="%23222"/%3E%3Cpath d="M 180 180 Q 200 190 220 180" stroke="%23222" fill="none" stroke-width="3"/%3E%3Crect x="150" y="100" width="30" height="30" fill="%23f00" opacity="0.7"/%3E%3Ctext x="165" y="120" fill="%23fff" font-size="12" font-weight="bold"%3EPATCH%3C/text%3E%3C/svg%3E' },
-    { id: 2, name: 'Test Subject A', raw: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23555" width="400" height="400"/%3E%3Ccircle cx="200" cy="150" r="65" fill="%23777"/%3E%3Cellipse cx="200" cy="280" rx="85" ry="105" fill="%23777"/%3E%3Ccircle cx="180" cy="145" r="9" fill="%23111"/%3E%3Ccircle cx="220" cy="145" r="9" fill="%23111"/%3E%3Cpath d="M 175 185 Q 200 195 225 185" stroke="%23111" fill="none" stroke-width="4"/%3E%3C/svg%3E',
-      patched: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23555" width="400" height="400"/%3E%3Ccircle cx="200" cy="150" r="65" fill="%23777"/%3E%3Cellipse cx="200" cy="280" rx="85" ry="105" fill="%23777"/%3E%3Ccircle cx="180" cy="145" r="9" fill="%23111"/%3E%3Ccircle cx="220" cy="145" r="9" fill="%23111"/%3E%3Cpath d="M 175 185 Q 200 195 225 185" stroke="%23111" fill="none" stroke-width="4"/%3E%3Crect x="140" y="110" width="35" height="35" fill="%23e00" opacity="0.7"/%3E%3Ctext x="157" y="132" fill="%23fff" font-size="12" font-weight="bold"%3EPATCH%3C/text%3E%3C/svg%3E' },
-    { id: 3, name: 'Test Subject B', raw: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23333" width="400" height="400"/%3E%3Ccircle cx="200" cy="155" r="55" fill="%23555"/%3E%3Cellipse cx="200" cy="285" rx="75" ry="95" fill="%23555"/%3E%3Ccircle cx="185" cy="145" r="7" fill="%23000"/%3E%3Ccircle cx="215" cy="145" r="7" fill="%23000"/%3E%3Cpath d="M 185 180 Q 200 188 215 180" stroke="%23000" fill="none" stroke-width="3"/%3E%3C/svg%3E',
-      patched: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23333" width="400" height="400"/%3E%3Ccircle cx="200" cy="155" r="55" fill="%23555"/%3E%3Cellipse cx="200" cy="285" rx="75" ry="95" fill="%23555"/%3E%3Ccircle cx="185" cy="145" r="7" fill="%23000"/%3E%3Ccircle cx="215" cy="145" r="7" fill="%23000"/%3E%3Cpath d="M 185 180 Q 200 188 215 180" stroke="%23000" fill="none" stroke-width="3"/%3E%3Crect x="160" y="120" width="28" height="28" fill="%23d00" opacity="0.7"/%3E%3Ctext x="174" y="138" fill="%23fff" font-size="10" font-weight="bold"%3EPATCH%3C/text%3E%3C/svg%3E' }
-  ];
+  // Data from Backend
+  const [attackers, setAttackers] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [serverStatus, setServerStatus] = useState('checking'); // checking, online, offline
 
+  const [selectedAttacker, setSelectedAttacker] = useState(null);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+
+  const API_URL = "http://localhost:8000";
+
+  // Initial Data Fetch
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(`${API_URL}/info`);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        setAttackers(data.attackers || []);
+        setEmployees(data.employees || []);
+        setServerStatus('online');
+      } catch (error) {
+        console.error("Failed to fetch info:", error);
+        setServerStatus('offline');
+        // Fallback data for UI testing if server is down
+        setAttackers([
+          { id: 999, name: 'Server Offline', db_id: 'err' }
+        ]);
+        setEmployees([
+          { id: 999, name: 'Server Offline', db_id: 'err' }
+        ]);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Animation Effects
   useEffect(() => {
     if (isScanning) {
       const lineInterval = setInterval(() => {
@@ -28,8 +54,8 @@ const FaceRecognitionDemo = () => {
       }, 30);
 
       const progressInterval = setInterval(() => {
-        setScanProgress(prev => Math.min(prev + 1, 100));
-      }, 20);
+        setScanProgress(prev => Math.min(prev + 1, 99));
+      }, 30); // Slower progress, real scan will finish it
 
       const gridInterval = setInterval(() => {
         setGridOverlay(prev => !prev);
@@ -47,221 +73,242 @@ const FaceRecognitionDemo = () => {
     }
   }, [isScanning]);
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setUploadedImage(event.target.result);
-        setSelectedImage({ id: 'uploaded', name: file.name, raw: event.target.result, patched: event.target.result });
-        setScanResult(null);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  const handleScan = async () => {
+    if (!selectedAttacker || !selectedEmployee) return;
 
-  const handleScan = () => {
     setIsScanning(true);
     setScanResult(null);
 
-    setTimeout(() => {
-      if (imageType === 'raw') {
-        setScanResult({
-          status: 'unknown',
-          message: 'ACCESS DENIED',
-          detail: 'UNRECOGNIZED SUBJECT',
-          confidence: 0,
-          color: 'red'
-        });
-      } else {
-        if (defenseEnabled) {
-          setScanResult({
-            status: 'threat',
-            message: 'THREAT DETECTED',
-            detail: 'ADVERSARIAL PATTERN IDENTIFIED',
-            subtext: 'Patch-based attack blocked',
-            confidence: 0,
-            color: 'red'
-          });
-        } else {
-          setScanResult({
-            status: 'recognized',
-            message: 'ACCESS GRANTED',
-            detail: 'EMPLOYEE #7',
-            subtext: 'SARAH CHEN - ENGINEERING DEPT.',
-            confidence: 94,
-            color: 'green'
-          });
-        }
-      }
+    try {
+      const response = await fetch(`${API_URL}/scan`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          attacker_id: selectedAttacker.id,
+          target_id: selectedEmployee.id,
+          mode: imageType,
+          defense: defenseEnabled
+        }),
+      });
+
+      const result = await response.json();
       
+      // Artificial delay for dramatic effect if the server is too fast
+      setTimeout(() => {
+        setScanResult(result);
+        setScanProgress(100);
+        setIsScanning(false);
+      }, 1500);
+
+    } catch (error) {
+      console.error("Scan failed:", error);
       setIsScanning(false);
-    }, 2500);
+      setScanResult({
+        status: 'error',
+        message: 'SYSTEM ERROR',
+        detail: 'CONNECTION FAILED',
+        color: 'red',
+        confidence: 0
+      });
+    }
   };
 
-  const getCurrentImage = () => {
-    if (!selectedImage) return null;
-    return imageType === 'raw' ? selectedImage.raw : selectedImage.patched;
+  // Construct image URL for the scanner preview
+  const getDisplayImageUrl = () => {
+    if (!selectedAttacker) return null;
+    
+    // Cache bust with timestamp to force refresh if mode changes (though React handles prop changes)
+    const baseUrl = `${API_URL}/image`;
+    const params = new URLSearchParams({
+      attacker_id: selectedAttacker.id,
+      mode: imageType,
+      ts: Date.now() // Prevent caching glitches
+    });
+    
+    if (selectedEmployee) {
+      params.append('target_id', selectedEmployee.id);
+    }
+
+    return `${baseUrl}?${params.toString()}`;
   };
 
   return (
-    <div className="min-h-screen w-screen bg-black text-white font-mono overflow-x-hidden">
-      <div className="w-full mx-auto max-w-full">
+    <div className="h-screen w-screen bg-black text-white font-mono overflow-hidden flex flex-col p-2">
+      
         {/* Top Bar */}
-        <div className="bg-gradient-to-r from-slate-900 to-slate-800 border-2 border-cyan-500 rounded-lg p-4 mb-4 shadow-lg shadow-cyan-500/50">
+        <div className="bg-gradient-to-r from-slate-900 to-slate-800 border-2 border-cyan-500 rounded-lg p-2 mb-2 shadow-lg shadow-cyan-500/50 shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-cyan-500 rounded-full flex items-center justify-center animate-pulse">
-                {defenseEnabled ? <Shield className="w-7 h-7 text-black" /> : <ShieldAlert className="w-7 h-7 text-black" />}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-cyan-500 rounded-full flex items-center justify-center animate-pulse">
+                {defenseEnabled ? <Shield className="w-6 h-6 text-black" /> : <ShieldAlert className="w-6 h-6 text-black" />}
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-wider text-cyan-400">SECURE ID FACIAL RECOGNITION</h1>
+                <h1 className="text-lg font-bold tracking-wider text-cyan-400">SECURE ID FACIAL RECOGNITION</h1>
                 <p className="text-xs text-cyan-300 tracking-widest">SECURITY CLEARANCE SYSTEM v3.7.2</p>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-cyan-400 text-sm">STATUS</div>
-              <div className={`text-xl font-bold ${defenseEnabled ? 'text-green-400' : 'text-yellow-400'}`}>
-                {defenseEnabled ? 'PROTECTED' : 'VULNERABLE'}
+            <div className="flex items-center gap-4">
+              {/* Server Status Indicator */}
+              <div className="flex items-center gap-2 text-xs border border-slate-600 px-2 py-1 rounded bg-slate-800">
+                <Server className={`w-3 h-3 ${serverStatus === 'online' ? 'text-green-400' : 'text-red-400'}`} />
+                <span className={serverStatus === 'online' ? 'text-green-400' : 'text-red-400'}>
+                  {serverStatus === 'online' ? 'API CONNECTED' : 'API OFFLINE'}
+                </span>
               </div>
-            </div>
-          </div>
-        </div>
 
-                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          {/* Left Panel - Controls */}
-          <div className="xl:col-span-1 space-y-4">
-            {/* Defense Control */}
-            <div className="bg-slate-900 border-2 border-cyan-500 rounded-lg p-4 shadow-lg shadow-cyan-500/30">
-              <div className="text-cyan-400 text-sm mb-3 tracking-wider">DEFENSE SYSTEM</div>
               <button
                 onClick={() => {
                   setDefenseEnabled(!defenseEnabled);
                   setScanResult(null);
                 }}
-                className={`w-full py-4 rounded-lg font-bold tracking-wider transition-all border-2 ${
+                className={`px-3 py-1 rounded-lg font-bold tracking-wider transition-all border-2 text-xs ${
                   defenseEnabled
                     ? 'bg-green-600 border-green-400 text-white shadow-lg shadow-green-500/50'
                     : 'bg-red-900 border-red-400 text-red-100 shadow-lg shadow-red-500/50'
                 }`}
               >
-                <div className="flex items-center justify-center gap-2">
-                  {defenseEnabled ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
-                  {defenseEnabled ? 'DEFENSE ACTIVE' : 'DEFENSE OFFLINE'}
+                <div className="flex items-center gap-2">
+                  {defenseEnabled ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                  <span>{defenseEnabled ? 'DEFENSE ACTIVE' : 'DEFENSE OFFLINE'}</span>
                 </div>
               </button>
-              <div className="mt-3 text-xs text-center text-slate-400">
-                {defenseEnabled ? 'Anti-adversarial protection enabled' : 'System vulnerable to attacks'}
+              <div className="text-right">
+                <div className="text-cyan-400 text-[10px]">STATUS</div>
+                <div className={`text-sm font-bold ${defenseEnabled ? 'text-green-400' : 'text-yellow-400'}`}>
+                  {defenseEnabled ? 'PROTECTED' : 'VULNERABLE'}
+                </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Image Selection */}
-            <div className="bg-slate-900 border-2 border-cyan-500 rounded-lg p-4 shadow-lg shadow-cyan-500/30">
-              <div className="text-cyan-400 text-sm mb-3 tracking-wider">SUBJECT SELECTION</div>
-              
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-                id="file-upload"
-              />
-              <label
-                htmlFor="file-upload"
-                className="block w-full py-3 px-4 bg-slate-800 border border-cyan-500 rounded text-center cursor-pointer hover:bg-slate-700 transition-all mb-3 text-sm"
-              >
-                <Upload className="w-4 h-4 inline mr-2" />
-                UPLOAD IMAGE
-              </label>
-
-              <div className="grid grid-cols-1 gap-2">
-                {preloadedImages.map((img) => (
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-2 flex-1 min-h-0">
+          {/* Left Panel - Controls */}
+          <div className="xl:col-span-1 space-y-2 flex flex-col h-full overflow-hidden">
+            
+            {/* Subject Selection - Takes 2/3 of space */}
+            <div className="bg-slate-900 border-2 border-cyan-500 rounded-lg p-3 shadow-lg shadow-cyan-500/30 flex-[2] flex flex-col min-h-0">
+              <div className="text-cyan-400 text-xs mb-2 tracking-wider shrink-0">SELECT ATTACKER</div>
+              <div className="grid grid-cols-1 gap-2 mb-4 flex-1 min-h-0 overflow-y-auto">
+                {attackers.map((attacker) => (
                   <button
-                    key={img.id}
+                    key={attacker.id}
                     onClick={() => {
-                      setSelectedImage(img);
+                      setSelectedAttacker(attacker);
                       setScanResult(null);
                     }}
-                    className={`p-3 rounded border-2 transition-all text-left text-sm ${
-                      selectedImage?.id === img.id
-                        ? 'border-cyan-400 bg-cyan-900/30 shadow-lg shadow-cyan-500/30'
-                        : 'border-slate-600 bg-slate-800 hover:border-cyan-600'
+                    className={`p-2 rounded border-2 transition-all text-center text-xs flex items-center justify-center gap-3 ${
+                      selectedAttacker?.id === attacker.id
+                        ? 'border-red-400 bg-red-900/30 shadow-lg shadow-red-500/30'
+                        : 'border-slate-600 bg-slate-800 hover:border-red-600'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <User className="w-5 h-5 text-cyan-400" />
-                      <span>{img.name}</span>
-                    </div>
+                    <User className="w-4 h-4 text-red-400" />
+                    <span>{attacker.name}</span>
                   </button>
                 ))}
+                {attackers.length === 0 && (
+                  <div className="text-center text-gray-500 text-xs mt-4">Loading Attackers...</div>
+                )}
+              </div>
+
+              <div className="text-cyan-400 text-xs mb-2 tracking-wider shrink-0">SELECT TARGET EMPLOYEE</div>
+              <div className="grid grid-cols-1 gap-2 flex-[2] min-h-0 overflow-y-auto">
+                {employees.map((employee) => (
+                  <button
+                    key={employee.id}
+                    onClick={() => {
+                      setSelectedEmployee(employee);
+                      setScanResult(null);
+                    }}
+                    className={`p-2 rounded border-2 transition-all text-center flex items-center justify-center gap-3 ${
+                      selectedEmployee?.id === employee.id
+                        ? 'border-green-400 bg-green-900/30 shadow-lg shadow-green-500/30'
+                        : 'border-slate-600 bg-slate-800 hover:border-green-600'
+                    }`}
+                  >
+                    <User className="w-4 h-4 text-green-400" />
+                    <span className="text-xs">{employee.name}</span>
+                  </button>
+                ))}
+                 {employees.length === 0 && (
+                  <div className="text-center text-gray-500 text-xs mt-4">Loading Employees...</div>
+                )}
               </div>
             </div>
 
-            {/* Image Type */}
-            <div className="bg-slate-900 border-2 border-cyan-500 rounded-lg p-4 shadow-lg shadow-cyan-500/30">
-              <div className="text-cyan-400 text-sm mb-3 tracking-wider">IMAGE MODE</div>
-              <div className="grid grid-cols-2 gap-2">
+            {/* Image Type - Takes 1/3 of space - Stacked Vertically */}
+            <div className="bg-slate-900 border-2 border-cyan-500 rounded-lg p-3 shadow-lg shadow-cyan-500/30 flex-1 flex flex-col justify-center min-h-0">
+              <div className="text-cyan-400 text-xs mb-2 tracking-wider text-center shrink-0">IMAGE MODE</div>
+              <div className="flex flex-col gap-3 flex-1">
                 <button
                   onClick={() => {
                     setImageType('raw');
                     setScanResult(null);
                   }}
-                  className={`py-3 rounded font-bold text-sm transition-all border-2 ${
+                  className={`flex-1 rounded font-bold text-sm transition-all border-2 flex items-center justify-center ${
                     imageType === 'raw'
                       ? 'bg-blue-600 border-blue-400 text-white'
                       : 'bg-slate-800 border-slate-600 text-slate-300 hover:border-blue-600'
                   }`}
                 >
-                  RAW
+                  RAW INPUT
                 </button>
                 <button
                   onClick={() => {
                     setImageType('patched');
                     setScanResult(null);
                   }}
-                  className={`py-3 rounded font-bold text-sm transition-all border-2 ${
+                  className={`flex-1 rounded font-bold text-sm transition-all border-2 flex items-center justify-center ${
                     imageType === 'patched'
                       ? 'bg-red-600 border-red-400 text-white'
                       : 'bg-slate-800 border-slate-600 text-slate-300 hover:border-red-600'
                   }`}
                 >
-                  PATCHED
+                  PATCHED INPUT
                 </button>
               </div>
             </div>
-
-            {/* Scan Button */}
-            <button
-              onClick={handleScan}
-              disabled={!selectedImage || isScanning}
-              className={`w-full py-6 rounded-lg font-bold text-lg tracking-widest transition-all border-2 ${
-                !selectedImage || isScanning
-                  ? 'bg-slate-800 border-slate-700 text-slate-600 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-400 text-white hover:from-cyan-500 hover:to-blue-500 shadow-lg shadow-cyan-500/50 animate-pulse'
-              }`}
-            >
-              {isScanning ? 'SCANNING...' : 'INITIATE SCAN'}
-            </button>
+            
           </div>
 
           {/* Center/Right - Scanner Display */}
-          <div className="xl:col-span-2">
-            <div className="bg-slate-900 border-2 border-cyan-500 rounded-lg p-6 shadow-lg shadow-cyan-500/30 h-full">
-              <div className="text-cyan-400 text-sm mb-4 tracking-wider flex justify-between">
+          <div className="xl:col-span-2 h-full min-h-0">
+            <div className="bg-slate-900 border-2 border-cyan-500 rounded-lg p-4 shadow-lg shadow-cyan-500/30 h-full flex flex-col">
+              <div className="text-cyan-400 text-xs mb-2 tracking-wider flex justify-between shrink-0">
                 <span>BIOMETRIC SCANNER</span>
                 <span className="text-green-400 animate-pulse">● ONLINE</span>
               </div>
 
-              {/* Scanner Area */}
-              <div className="relative bg-black rounded-lg border-2 border-cyan-600 overflow-hidden" style={{ aspectRatio: '4/3' }}>
-                {selectedImage ? (
+              {/* Scan Button Above Scanner */}
+              <button
+                onClick={handleScan}
+                disabled={!selectedAttacker || !selectedEmployee || isScanning || serverStatus !== 'online'}
+                className={`w-full py-3 rounded-lg font-bold text-md tracking-widest transition-all border-2 mb-3 shrink-0 ${
+                  !selectedAttacker || !selectedEmployee || isScanning || serverStatus !== 'online'
+                    ? 'bg-slate-800 border-slate-700 text-slate-600 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-400 text-white hover:from-cyan-500 hover:to-blue-500 shadow-lg shadow-cyan-500/50 animate-pulse'
+                }`}
+              >
+                {isScanning ? 'SCANNING...' : serverStatus === 'offline' ? 'SERVER OFFLINE' : 'INITIATE SCAN'}
+              </button>
+
+              {/* Scanner Area - Flexible Height */}
+              <div className="relative bg-black rounded-lg border-2 border-cyan-600 overflow-hidden flex-1 min-h-0 w-full">
+                {selectedAttacker && selectedEmployee ? (
                   <>
                     {/* Image */}
                     <img
-                      src={getCurrentImage()}
+                      src={getDisplayImageUrl()}
                       alt="Scan subject"
                       className="w-full h-full object-contain"
                       style={{ filter: isScanning ? 'brightness(1.2) contrast(1.1)' : 'none' }}
+                      onError={(e) => {
+                        e.target.style.display = 'none'; // Hide broken images
+                        // In a real app, show a "Failed to load" placeholder
+                      }}
                     />
 
                     {/* Scanning Overlay */}
@@ -314,38 +361,26 @@ const FaceRecognitionDemo = () => {
 
                     {/* Results Overlay */}
                     {scanResult && !isScanning && (
-                      <div className="absolute inset-0 bg-black/70 flex items-center justify-center backdrop-blur-sm">
-                        <div className={`text-center p-8 border-4 rounded-lg ${
+                      <div className="absolute inset-0 bg-black/70 flex items-center justify-center backdrop-blur-sm p-4">
+                        <div className={`text-center p-6 border-4 rounded-lg w-full max-w-lg ${
                           scanResult.color === 'green' 
                             ? 'border-green-400 bg-green-900/30' 
                             : 'border-red-400 bg-red-900/30'
                         }`}>
-                          <div className={`text-6xl font-bold mb-4 tracking-wider ${
+                          <div className={`text-4xl md:text-5xl font-bold mb-2 tracking-wider ${
                             scanResult.color === 'green' ? 'text-green-400' : 'text-red-400'
                           }`}>
                             {scanResult.message}
                           </div>
-                          <div className={`text-3xl font-bold mb-2 ${
+                          <div className={`text-xl md:text-2xl font-bold mb-1 ${
                             scanResult.color === 'green' ? 'text-green-300' : 'text-red-300'
                           }`}>
                             {scanResult.detail}
                           </div>
                           {scanResult.subtext && (
-                            <div className="text-xl text-slate-300 mt-2">{scanResult.subtext}</div>
+                            <div className="text-sm md:text-lg text-slate-300 mt-1">{scanResult.subtext}</div>
                           )}
-                          {scanResult.confidence > 0 && (
-                            <div className="mt-6">
-                              <div className="text-green-400 text-2xl font-bold">
-                                MATCH: {scanResult.confidence}%
-                              </div>
-                              <div className="w-64 mx-auto mt-3 h-4 bg-slate-700 rounded-full overflow-hidden border-2 border-green-400">
-                                <div
-                                  className="h-full bg-gradient-to-r from-green-600 to-green-400 transition-all duration-1000"
-                                  style={{ width: `${scanResult.confidence}%` }}
-                                ></div>
-                              </div>
-                            </div>
-                          )}
+                          {/* Match % Block Removed */}
                         </div>
                       </div>
                     )}
@@ -353,27 +388,27 @@ const FaceRecognitionDemo = () => {
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <div className="text-center text-slate-600">
-                      <AlertTriangle className="w-16 h-16 mx-auto mb-4" />
-                      <p className="text-xl">NO SUBJECT LOADED</p>
-                      <p className="text-sm mt-2">Select or upload an image to begin</p>
+                      <AlertTriangle className="w-12 h-12 mx-auto mb-2" />
+                      <p className="text-lg">NO SUBJECT LOADED</p>
+                      <p className="text-xs mt-1">Select attacker and target employee</p>
                     </div>
                   </div>
                 )}
               </div>
 
               {/* Status Bar */}
-              <div className="mt-4 grid grid-cols-3 gap-4 text-xs">
-                <div className="bg-slate-800 p-3 rounded border border-cyan-600">
+              <div className="mt-3 grid grid-cols-3 gap-3 text-[10px] shrink-0">
+                <div className="bg-slate-800 p-2 rounded border border-cyan-600">
                   <div className="text-cyan-400 mb-1">MODE</div>
                   <div className="text-white font-bold">{imageType.toUpperCase()}</div>
                 </div>
-                <div className="bg-slate-800 p-3 rounded border border-cyan-600">
+                <div className="bg-slate-800 p-2 rounded border border-cyan-600">
                   <div className="text-cyan-400 mb-1">DEFENSE</div>
                   <div className={`font-bold ${defenseEnabled ? 'text-green-400' : 'text-red-400'}`}>
                     {defenseEnabled ? 'ENABLED' : 'DISABLED'}
                   </div>
                 </div>
-                <div className="bg-slate-800 p-3 rounded border border-cyan-600">
+                <div className="bg-slate-800 p-2 rounded border border-cyan-600">
                   <div className="text-cyan-400 mb-1">STATUS</div>
                   <div className="text-white font-bold">
                     {isScanning ? 'SCANNING' : scanResult ? 'COMPLETE' : 'READY'}
@@ -383,13 +418,6 @@ const FaceRecognitionDemo = () => {
             </div>
           </div>
         </div>
-
-        {/* Bottom Info */}
-        <div className="mt-4 text-center text-xs text-slate-600">
-          <p>SECUREID CYBERSECURITY DEMONSTRATION SYSTEM</p>
-          <p className="mt-1">Adversarial Patch Attack & Defense Analysis Platform</p>
-        </div>
-      </div>
     </div>
   );
 };

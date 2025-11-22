@@ -3,13 +3,16 @@
 # Paths
 employee_db_path: data/processed/embeddings/employee_db.pkl
 patches_dir: data/patches
-models_dir: models/pretrained
+models_dir: models
 raw_data_dir: data/raw
 processed_data_dir: data/processed
 
+# Model Filenames
+patch_detector_filename: patch_detector.pth
+
 # Model parameters
 classification_threshold: 0.55  # Cosine similarity threshold for face recognition
-patch_detection_threshold: 0.15  # Threshold for adversarial patch detection
+patch_detection_threshold: 0.50  # Threshold for adversarial patch detection
 
 # Device
 device: cuda  # Options: cuda, cpu

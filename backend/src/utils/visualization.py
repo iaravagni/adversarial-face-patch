@@ -4,9 +4,15 @@ Visualization utilities for adversarial face recognition.
 
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 import torch
+import torch.nn.functional as F
+from torch.utils.data import Dataset # Import necessary type hint
 from typing import List, Optional, Tuple
 import seaborn as sns
+from sklearn.manifold import TSNE
+from sklearn.metrics import confusion_matrix
+
 
 
 def plot_patch(
@@ -158,8 +164,9 @@ def plot_optimization_history(
 
 
 def plot_confusion_matrix(
-    confusion: np.ndarray,
-    classes: List[str],
+    y_true: List[int], # Renamed from 'confusion' to reflect input
+    y_pred: List[int], # New argument for predictions
+    classes: List[str], # Renamed from 'classes' to align with sklearn target_names
     title: str = "Confusion Matrix",
     save_path: Optional[str] = None
 ):
@@ -167,20 +174,25 @@ def plot_confusion_matrix(
     Plot confusion matrix.
     
     Args:
-        confusion: Confusion matrix [n_classes, n_classes]
-        classes: List of class names
+        y_true: List of true labels.
+        y_pred: List of predicted labels.
+        classes: List of class names (e.g., ['Clean', 'Patch']).
         title: Plot title
         save_path: Optional save path
     """
+    # 1. Calculate the confusion matrix from raw labels and predictions
+    confusion = confusion_matrix(y_true, y_pred)
+    
     plt.figure(figsize=(10, 8))
     
+    # 2. Plot the calculated confusion matrix
     sns.heatmap(
         confusion,
         annot=True,
-        fmt='d',
+        fmt='d', # Format as integers
         cmap='Blues',
-        xticklabels=classes,
-        yticklabels=classes,
+        xticklabels=classes, # Use the provided classes for x-axis
+        yticklabels=classes, # Use the provided classes for y-axis
         cbar_kws={'label': 'Count'}
     )
     
@@ -193,6 +205,7 @@ def plot_confusion_matrix(
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
         print(f"✓ Saved confusion matrix to {save_path}")
     else:
+        # 
         plt.show()
     
     plt.close()
@@ -311,7 +324,6 @@ def plot_embedding_space(
         title: Plot title
         save_path: Optional save path
     """
-    from sklearn.manifold import TSNE
     
     # Stack embeddings
     embedding_list = []
@@ -354,3 +366,55 @@ def plot_embedding_space(
         plt.show()
     
     plt.close()
+
+def visualize_predictions(model: torch.nn.Module, test_data: Dataset, device: torch.device, num_images: int = 10):
+    """
+    Displays a grid of images with the model's Patch Detector prediction and confidence.
+
+    Args:
+        model: The trained PatchDetector model.
+        test_data: The PatchDataset instance.
+        device: The device (cpu/cuda) where the model resides.
+        num_images: The number of images to display.
+    """
+    model.eval()
+    
+    # Calculate grid size (e.g., 2 rows, 5 columns for 10 images)
+    rows = 2
+    cols = num_images // rows
+    
+    fig, axes = plt.subplots(rows, cols, figsize=(15, 6))
+    plt.suptitle("Adversarial Patch Detector Predictions", fontsize=16)
+    
+    target_names = ['Clean', 'Patch'] # Define the two class names
+
+    for i, ax in enumerate(axes.flat):
+        # Select a random sample from the test data
+        idx = random.randint(0, len(test_data) - 1)
+        img, true_label = test_data[idx]
+
+        with torch.no_grad():
+            # Add batch dimension (B=1) and move to device
+            output = model(img.unsqueeze(0).to(device))
+            
+            # Apply softmax to get probabilities
+            prob = F.softmax(output, dim=1)
+            
+            # Get predicted label and confidence
+            pred_label = torch.argmax(prob, dim=1).item()
+            conf = prob[0, pred_label].item()
+
+        # Display image (Permute from (C, H, W) to (H, W, C) for matplotlib)
+        # Ensure the tensor is moved to CPU and converted to a numpy array for imshow
+        ax.imshow(img.permute(1, 2, 0).cpu().numpy())
+        
+        # Determine labels and color for the title
+        true_str = target_names[true_label]
+        pred_str = target_names[pred_label]
+        color = 'green' if pred_label == true_label else 'red'
+        
+        ax.set_title(f'True: {true_str}\nPred: {pred_str} ({conf*100:.0f}%)', color=color)
+        ax.axis('off')
+
+    plt.tight_layout(rect=[0, 0, 1, 0.96]) # Adjust for suptitle
+    plt.show()

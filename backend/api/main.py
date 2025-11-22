@@ -11,21 +11,20 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from facenet_pytorch import MTCNN
+from torchvision import transforms
 
-# -----------------------------------------------------------------------------
-# PATH FIX: Add the parent directory ('backend') to sys.path
-# -----------------------------------------------------------------------------
-current_dir = os.path.dirname(os.path.abspath(__file__)) # .../backend/api
-backend_dir = os.path.dirname(current_dir)             # .../backend
-project_root = os.path.dirname(backend_dir)            # .../adversarial-face-patch (Root)
+
+current_dir = os.path.dirname(os.path.abspath(__file__)) 
+backend_dir = os.path.dirname(current_dir)             
+project_root = os.path.dirname(backend_dir)            
 sys.path.append(backend_dir)
-sys.path.append(project_root) # Add root to find src if needed
-# -----------------------------------------------------------------------------
+sys.path.append(project_root) 
 
 from src.models.face_recognition import FaceRecognitionModel
 from src.utils.config import load_config, get_device
 from src.attack.patch_application import load_patch, apply_circular_patch, create_circular_mask
 from src.data.dataset import load_saved_images
+from src.models.patch_detection_model import PatchDetector 
 
 app = FastAPI(title="Face Recognition Security Demo")
 
@@ -46,6 +45,7 @@ class State:
     metadata = None
     patches = {}
     attacker_images = {} 
+    patch_detector = None # --- NEW STATE VARIABLE ---
 
 state = State()
 
@@ -152,7 +152,66 @@ async def startup_event():
             if f.endswith('.pt'):
                 state.patches[f] = os.path.join(patches_dir, f)
     
+    # 6. Load Patch Detector Model (NEW BLOCK)
+    detector_filename = state.config.get('patch_detector_filename', 'patch_detector.pth')
+    models_dir = resolve_path(state.config.get('models_dir', 'models'))
+    detector_path = os.path.join(models_dir, detector_filename)
+    
+    state.patch_detector = PatchDetector().to(state.device)
+    if os.path.exists(detector_path):
+        state.patch_detector.load_state_dict(torch.load(detector_path))
+        state.patch_detector.eval()
+        print(f"Patch Detector model loaded successfully from: {detector_path}")
+    else:
+        print(f"WARNING: Patch Detector model not found at {detector_path}. Defense will be disabled.")
+        state.patch_detector = None # Set to None to disable in /scan
+    
     print("System Ready.")
+
+def run_patch_detector(face_tensor: torch.Tensor) -> bool:
+    """
+    Runs the Patch Detector model on the face tensor.
+    Returns True if a patch is detected, False otherwise.
+    """
+    if state.patch_detector is None:
+        print("Detector is None, returning False.")
+        return False
+        
+    # 1. Convert the normalized tensor back to a PIL image for transformation
+    face_np = face_tensor.permute(1, 2, 0).cpu().numpy()
+    
+    # Convert [0,1] float to [0,255] uint8 for PIL
+    if face_np.dtype != np.uint8:
+        # Scale only if the tensor is float (which it is from MTCNN)
+        face_np = (face_np * 255).astype(np.uint8) 
+        
+    face_pil = Image.fromarray(face_np)
+    
+    # 2. Define and apply the detector's required transformation
+    # Matches the pipeline used during detector training (160x160 -> 128x128)
+    detector_transform = transforms.Compose([
+        transforms.Resize((128, 128)),
+        transforms.ToTensor() # Converts to [0,1] and (C,H,W)
+    ])
+    
+    # Apply transform, add batch dimension [1, 3, 128, 128], and move to device
+    detector_input_tensor = detector_transform(face_pil).unsqueeze(0).to(state.device)
+    
+    # 3. Run Inference
+    with torch.no_grad():
+        state.patch_detector.eval() 
+        outputs = state.patch_detector(detector_input_tensor)
+        
+        # Calculate confidence for the 'Patch' class (index 1)
+        softmax = torch.nn.functional.softmax(outputs, dim=1)
+        patch_confidence = softmax[0, 1].item()
+        
+        # Detect if patch confidence is above a threshold (e.g., 50%)
+        is_patched = patch_confidence > 0.5 
+        
+    print(f"Detector Output: Clean={softmax[0, 0].item():.2f}, Patch={patch_confidence:.2f} -> Detected: {is_patched}")
+    
+    return is_patched
 
 @app.get("/info")
 async def get_system_info():
@@ -265,6 +324,7 @@ async def scan_face(payload: dict):
         
     face_tensor = face_tensor.to(state.device)
     
+    # 1. Apply Patch if mode is "patched"
     if mode == "patched" and state.patches:
         patch_path = list(state.patches.values())[0]
         patch_tensor, patch_meta = load_patch(patch_path)
@@ -273,9 +333,13 @@ async def scan_face(payload: dict):
         patch_tensor = patch_tensor.to(state.device)
         face_tensor = apply_circular_patch(face_tensor, patch_tensor, patch_meta['position']['x'], patch_meta['position']['y'], mask)
         
-        if defense_enabled:
-             return {"status": "threat", "message": "THREAT DETECTED", "detail": "ADVERSARIAL PATTERN", "subtext": "Blocked by Defense Layer", "confidence": 99, "color": "red"}
+    # 2. Run Defense Check (NEW LOGIC BLOCK)
+    if defense_enabled and state.patch_detector is not None:
+        if run_patch_detector(face_tensor):
+            # Patch Detected! Block access immediately.
+            return {"status": "threat", "message": "THREAT DETECTED", "detail": "ADVERSARIAL PATTERN", "subtext": "Blocked by Patch Detector", "confidence": 99, "color": "red"}
 
+    # 3. Run Face Recognition (Only if no patch was detected or defense is off)
     if len(face_tensor.shape) == 3:
         face_tensor = face_tensor.unsqueeze(0)
         
@@ -285,8 +349,25 @@ async def scan_face(payload: dict):
     if identified_name == "Unknown":
         return {"status": "denied", "message": "ACCESS DENIED", "detail": "UNRECOGNIZED IDENTITY", "confidence": round(confidence * 100, 1), "color": "red"}
     else:
-        return {"status": "granted", "message": "ACCESS GRANTED", "detail": identified_name.upper(), "subtext": "ENGINEERING DEPT", "confidence": round(confidence * 100, 1), "color": "green"}
+        # Check if the identified person is an employee (for a real system)
+        # Here we just check if it's the attacker (since attackers are also in the DB)
+        is_attacker_trying_to_impersonate = identified_name == attacker_name
+        
+        if is_attacker_trying_to_impersonate:
+            # If the patch was applied (mode="patched") and we got a match, the attack succeeded.
+            if mode == "patched":
+                 return {"status": "denied", "message": "BREACH IMMINENT", "detail": f"ATTACKER ({identified_name.upper()}) DETECTED", "subtext": "Patch Bypass Succeeded", "confidence": round(confidence * 100, 1), "color": "red"}
+            else:
+                 # Raw image of the attacker (who is a valid DB entry)
+                 return {"status": "denied", "message": "ACCESS DENIED", "detail": f"UNAUTHORIZED ID: {identified_name.upper()}", "subtext": "Attacker ID in Database", "confidence": round(confidence * 100, 1), "color": "red"}
+        
+        # This means the attacker's face was recognized as the target employee.
+        target_name = state.metadata['target_names'][payload.get("target_id")] if payload.get("target_id") in state.metadata['target_names'] else "EMPLOYEE"
+
+        return {"status": "granted", "message": "ACCESS GRANTED", "detail": f"WELCOME, {target_name.upper()}", "subtext": " ", "confidence": round(confidence * 100, 1), "color": "green"}
 
 if __name__ == "__main__":
     import uvicorn
+    from torchvision import transforms 
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

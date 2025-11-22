@@ -146,7 +146,7 @@ const FaceRecognitionDemo = () => {
               </div>
               <div>
                 <h1 className="text-lg font-bold tracking-wider text-cyan-400">SECURE ID FACIAL RECOGNITION</h1>
-                <p className="text-xs text-cyan-300 tracking-widest">SECURITY CLEARANCE SYSTEM v3.7.2</p>
+                {/* <p className="text-xs text-cyan-300 tracking-widest">SECURITY CLEARANCE SYSTEM v3.7.2</p> */}
               </div>
             </div>
             <div className="flex items-center gap-4">

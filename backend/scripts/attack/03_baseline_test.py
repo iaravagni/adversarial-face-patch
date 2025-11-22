@@ -8,7 +8,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 import pickle
 from src.models.face_recognition import FaceRecognitionModel
-from src.data.dataset import load_lfw_dataset, get_images_for_person, load_saved_images
+from src.data.dataset import load_saved_images
 from src.utils.config import load_config, get_device
 from src.attack.evaluator import AttackEvaluator
 

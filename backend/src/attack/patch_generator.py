@@ -8,6 +8,8 @@ import torch.nn as nn
 import torch.optim as optim
 from typing import List, Tuple, Dict
 import numpy as np
+from .patch_application import apply_circular_patch
+
 
 
 class AdversarialPatchGenerator:
@@ -103,7 +105,6 @@ class AdversarialPatchGenerator:
         Returns:
             Dictionary with optimization history
         """
-        from .patch_application import apply_circular_patch
         
         # Initialize if not already done
         if self.patch is None:

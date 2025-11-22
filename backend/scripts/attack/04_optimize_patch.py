@@ -11,12 +11,24 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 from facenet_pytorch import MTCNN
+import random
 
 from src.models.face_recognition import FaceRecognitionModel
 from src.attack.patch_generator import AdversarialPatchGenerator
 from src.attack.patch_application import save_patch
-from src.data.dataset import load_lfw_dataset, get_images_for_person
+from src.data.dataset import load_saved_images
 from src.utils.config import load_config, get_device
+
+
+def set_seed(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    # For full determinism (slower, optional for CPU)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 
 def main():
@@ -29,6 +41,9 @@ def main():
     # Load config
     config = load_config()
     device = get_device()
+
+    ATTACKER_INDEX = 0
+    TARGET_INDEX = 0
     
     # Load face recognition model
     face_model = FaceRecognitionModel(device=device)
@@ -39,45 +54,53 @@ def main():
     with open(metadata_path, 'rb') as f:
         metadata = pickle.load(f)
     
-    # Load dataset
-    images, targets, target_names = load_lfw_dataset(color=True, min_faces_per_person=20)
-    
-    # Get attacker images
-    attacker_id = metadata['attacker_ids'][0]
-    attacker_name = target_names[attacker_id]
-    
+    raw_dir = config["raw_data_dir"]
+
+    # Get first attacker from metadata
+    attacker_id = metadata['attacker_ids'][ATTACKER_INDEX]
+    attacker_name = metadata['target_names'][attacker_id]
     print(f"\nAttacker: {attacker_name}")
-    
-    attacker_images = get_images_for_person(attacker_id, images, targets)
-    
-    # Split into train/test
+
+    # Load attacker images
+    raw_dir = config["raw_data_dir"]
+    attacker_images_list = load_saved_images(
+        os.path.join(raw_dir, "attackers"),
+        [attacker_name]
+    )[0]
+
+    # Train split
     num_train = config['dataset']['attacker_train_images']
-    attacker_train = attacker_images[:num_train]
-    
+    attacker_train = attacker_images_list[:num_train]
     print(f"Using {len(attacker_train)} images for optimization")
-    
+
     # Detect faces and prepare batch
     mtcnn = MTCNN(image_size=160, margin=20, device=device, keep_all=False)
-    
+
     attacker_faces = []
     for img in attacker_train:
         face = mtcnn(img)
         if face is not None:
             attacker_faces.append(face)
-    
+
     if not attacker_faces:
         print("ERROR: No faces detected in attacker images!")
         return
-    
+
     attacker_batch = torch.stack(attacker_faces).to(device)
     print(f"✓ Detected {len(attacker_faces)} faces")
-    
-    # Select target employee (first one)
-    target_employee = "Employee_1"
-    target_embedding = face_model.employee_embeddings[target_employee]
-    
+
+    # ----------------------------
+    # Select target employee (first one in metadata)
+    # ----------------------------
+
+    # Select the target employee from the database by index
+    employee_labels = list(face_model.employee_embeddings.keys())
+    target_employee = employee_labels[TARGET_INDEX]
+
     print(f"\nTarget: Impersonate {target_employee}")
-    
+
+    target_embedding = face_model.employee_embeddings[target_employee]
+
     # Initialize patch generator
     patch_gen = AdversarialPatchGenerator(
         device=device,
@@ -101,7 +124,7 @@ def main():
     patch_data['metadata']['attacker_name'] = attacker_name
     patch_data['metadata']['success_rate'] = 0.0  # Will be updated after testing
     
-    patch_name = f"patch_{target_employee.lower()}_r{config['patch']['radius']}"
+    patch_name = f"patch_att{ATTACKER_INDEX}_tgt{TARGET_INDEX}_r{config['patch']['radius']}.png"
     
     os.makedirs(config['patches_dir'], exist_ok=True)
     save_patch(
@@ -149,21 +172,17 @@ def main():
     axes[1, 1].grid(True, alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig(f"{config['patches_dir']}/{patch_name}_optimization.png", dpi=150)
-    print(f"✓ Saved optimization plot")
+    # plt.savefig(f"{config['patches_dir']}/{patch_name}_optimization.png", dpi=150)
+    # print(f"✓ Saved optimization plot")
     
     # Visualize patch
     patch_vis = patch_data['patch'].permute(1, 2, 0).numpy()
     patch_vis = (patch_vis + 1) / 2
     patch_vis = np.clip(patch_vis, 0, 1)
-    
-    plt.figure(figsize=(6, 6))
-    plt.imshow(patch_vis)
-    plt.title(f'Optimized Adversarial Patch\nTarget: {target_employee}')
-    plt.axis('off')
-    plt.tight_layout()
-    plt.savefig(f"{config['patches_dir']}/{patch_name}_visual.png", dpi=150)
-    print(f"✓ Saved patch visualization")
+
+    # Save only the patch
+    plt.imsave(os.path.join(config['patches_dir'], patch_name), patch_vis)
+    print(f"✓ Saved patch image: {patch_name}")
     
     print("\n" + "="*70)
     print("✓ PATCH OPTIMIZATION COMPLETE")
@@ -171,4 +190,5 @@ def main():
 
 
 if __name__ == "__main__":
+    set_seed(42)
     main()

@@ -23,7 +23,7 @@ patch:
     y_min: 0
     y_max: 160
   optimization:
-    iterations: 1000
+    iterations: 500
     lr_content: 0.2
     lr_position: 3.0
 

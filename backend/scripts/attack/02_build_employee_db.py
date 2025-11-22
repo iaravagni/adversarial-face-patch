@@ -6,10 +6,10 @@ Creates face embeddings for all employees.
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-
+import numpy as np
 import torch
 from src.models.face_recognition import FaceRecognitionModel
-from src.data.dataset import load_lfw_dataset, select_people_for_experiment, get_images_for_person
+from src.data.dataset import load_lfw_dataset, select_people_for_experiment, get_images_for_person, save_selected_people
 from src.utils.config import load_config, get_device
 import pickle
 
@@ -28,17 +28,40 @@ def main():
     # Load dataset
     images, targets, target_names = load_lfw_dataset(
         color=True,
-        min_faces_per_person=20
+        min_faces_per_person=30
     )
     
-    # Select people for experiment
+    print("\nSelecting employees and attackers...")
     employee_ids, attacker_ids = select_people_for_experiment(
         targets,
         target_names,
-        num_employees=config['dataset']['num_employees'],
-        num_attackers=config['dataset']['num_attackers']
+        num_employees=config["dataset"]["num_employees"],
+        num_attackers=config["dataset"]["num_attackers"]
     )
-    
+
+    print("\nSaving selected images only...")
+    save_selected_people(
+        save_root=config["raw_data_dir"],
+        images=images,
+        targets=targets,
+        target_names=target_names,
+        employee_ids=employee_ids,
+        attacker_ids=attacker_ids
+    )
+
+    print("\nSelected People (Employees + Attackers):")
+    print("----------------------------------------")
+
+    for pid in employee_ids:
+        name = target_names[pid]
+        count = np.sum(targets == pid)
+        print(f"Employee – {name}: {count} images")
+
+    for pid in attacker_ids:
+        name = target_names[pid]
+        count = np.sum(targets == pid)
+        print(f"Attacker – {name}: {count} images")
+
     # Initialize face recognition model
     face_model = FaceRecognitionModel(device=device)
     

@@ -8,7 +8,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 import pickle
 from src.models.face_recognition import FaceRecognitionModel
-from src.data.dataset import load_lfw_dataset, get_images_for_person
+from src.data.dataset import load_lfw_dataset, get_images_for_person, load_saved_images
 from src.utils.config import load_config, get_device
 from src.attack.evaluator import AttackEvaluator
 
@@ -33,9 +33,20 @@ def main():
     with open(metadata_path, 'rb') as f:
         metadata = pickle.load(f)
     
-    # Load dataset
-    images, targets, target_names = load_lfw_dataset(color=True, min_faces_per_person=20)
-    
+    # Load saved images
+    raw_dir = config["raw_data_dir"]
+
+    # Retrieve attacker and employee folder names
+    employee_ids = metadata["employee_ids"]
+    attacker_ids = metadata["attacker_ids"]
+    target_names = metadata["target_names"]
+
+    employee_names = [target_names[i] for i in employee_ids]
+    attacker_names = [target_names[i] for i in attacker_ids]
+
+    employee_images = load_saved_images(os.path.join(raw_dir, "employees"), employee_names)
+    attacker_images = load_saved_images(os.path.join(raw_dir, "attackers"), attacker_names)
+
     # Test on attackers
     print("\n" + "="*70)
     print("TESTING ATTACKERS (Should be recognized as 'Unknown')")
@@ -45,12 +56,13 @@ def main():
     
     for attacker_id in metadata['attacker_ids']:
         attacker_name = target_names[attacker_id]
-        attacker_images = get_images_for_person(attacker_id, images, targets)
-        
-        # Use test images
+        index_of_attacker = attacker_ids.index(attacker_id)
+
+        imgs = attacker_images[index_of_attacker]   # match metadata order
         num_train = config['dataset']['attacker_train_images']
         num_test = config['dataset']['attacker_test_images']
-        test_images = attacker_images[num_train:num_train + num_test]
+        test_images = imgs[num_train : num_train + num_test]
+
         
         print(f"\nAttacker: {attacker_name}")
         print(f"Testing on {len(test_images)} images...")
@@ -95,11 +107,9 @@ def main():
     for i, emp_id in enumerate(employee_ids[:3]):  # Test first 3 employees
         emp_name = target_names[emp_id]
         emp_label = f"Employee_{i+1}"
-        emp_images = get_images_for_person(emp_id, images, targets)
-        
-        # Use images not in training
+        imgs = employee_images[i]  
         num_train = config['dataset']['images_per_employee']
-        test_images = emp_images[num_train:num_train + 10]
+        test_images = imgs[num_train : num_train + 10]
         
         print(f"\n{emp_label}: {emp_name}")
         print(f"Testing on {len(test_images)} images...")
@@ -138,8 +148,6 @@ def main():
     print("\n" + "="*70)
     print("✓ BASELINE TEST COMPLETE")
     print("="*70)
-    print("\nNext step: Run 04_optimize_patch.py to create adversarial patches")
-
 
 if __name__ == "__main__":
     main()

@@ -134,6 +134,31 @@ def save_selected_people(
 
     print("\n✓ Finished saving selected images!\n")
 
+def load_saved_images(base_dir: str, person_names: List[str]) -> List[List[Image.Image]]:
+    """
+    Load saved face images from the raw folder.
+
+    Args:
+        base_dir: root directory containing employee/attacker folders
+        person_names: list of folder names to load
+    
+    Returns:
+        List of lists of PIL images
+    """
+    all_images = []
+
+    for name in person_names:
+        person_dir = os.path.join(base_dir, name)
+        images = []
+
+        for fname in sorted(os.listdir(person_dir)):
+            if fname.lower().endswith((".jpg", ".png")):
+                img = Image.open(os.path.join(person_dir, fname)).convert("RGB")
+                images.append(img)
+
+        all_images.append(images)
+
+    return all_images
 
 
 def get_images_for_person(

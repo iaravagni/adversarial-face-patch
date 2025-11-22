@@ -8,7 +8,7 @@ import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
-from src.data.dataset import load_lfw_dataset, select_people_for_experiment, save_selected_people
+from src.data.dataset import load_lfw_dataset
 from src.utils.config import load_config
 
 
@@ -29,9 +29,10 @@ def main():
     
     images, targets, target_names = load_lfw_dataset(
         color=True,
-        min_faces_per_person=20,
+        min_faces_per_person=30,
     )
 
+    
     print("\n" + "="*70)
     print("DATASET STATISTICS")
     print("="*70)
@@ -48,37 +49,14 @@ def main():
     print(f"  Mean: {counts.mean():.1f}")
     print(f"  Median: {np.median(counts):.1f}")
     
-    print("\nSelecting employees and attackers...")
-    employee_ids, attacker_ids = select_people_for_experiment(
-        targets,
-        target_names,
-        num_employees=config["dataset"]["num_employees"],
-        num_attackers=config["dataset"]["num_attackers"]
-    )
-
-    print("\nSaving selected images only...")
-    save_selected_people(
-        save_root=config["raw_data_dir"],
-        images=images,
-        targets=targets,
-        target_names=target_names,
-        employee_ids=employee_ids,
-        attacker_ids=attacker_ids
-    )
-
-    print("\nSelected People (Employees + Attackers):")
-    print("----------------------------------------")
-
-    for pid in employee_ids:
-        name = target_names[pid]
-        count = np.sum(targets == pid)
-        print(f"Employee – {name}: {count} images")
-
-    for pid in attacker_ids:
-        name = target_names[pid]
-        count = np.sum(targets == pid)
-        print(f"Attacker – {name}: {count} images")
-
+    print(f"\nTop 10 people by image count:")
+    sorted_idx = np.argsort(-counts)
+    for i in range(min(10, len(sorted_idx))):
+        person_idx = unique[sorted_idx[i]]
+        person_name = target_names[person_idx]
+        person_count = counts[sorted_idx[i]]
+        print(f"  {i+1}. {person_name}: {person_count} images")
+    
     print("\n" + "="*70)
     print("✓ DATASET DOWNLOAD COMPLETE")
     print("="*70)

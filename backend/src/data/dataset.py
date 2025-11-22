@@ -7,6 +7,7 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 import numpy as np
 import os
+from sklearn.datasets import fetch_lfw_people
 from typing import List, Tuple, Optional
 
 
@@ -54,7 +55,7 @@ class FaceDataset(Dataset):
 
 def load_lfw_dataset(
     color: bool = True,
-    min_faces_per_person: int = 20
+    min_faces_per_person: int = 20,
 ) -> Tuple[np.ndarray, np.ndarray, List[str]]:
     """
     Load Labeled Faces in the Wild (LFW) dataset.
@@ -66,7 +67,6 @@ def load_lfw_dataset(
     Returns:
         Tuple of (images, targets, target_names)
     """
-    from sklearn.datasets import fetch_lfw_people
     
     print("Loading LFW dataset...")
     lfw = fetch_lfw_people(
@@ -82,6 +82,58 @@ def load_lfw_dataset(
     print(f"✓ Loaded {len(imgs)} images of {len(target_names)} people")
     
     return imgs, targets, target_names
+
+def save_selected_people(
+    save_root: str,
+    images: np.ndarray,
+    targets: np.ndarray,
+    target_names: List[str],
+    employee_ids: List[int],
+    attacker_ids: List[int]
+):
+    """
+    Save only selected employees and attackers into separate folders.
+
+    Folder structure:
+        save_root/employees/<person_name>/img_000.jpg
+        save_root/attackers/<person_name>/img_000.jpg
+    """
+    emp_dir = os.path.join(save_root, "employees")
+    att_dir = os.path.join(save_root, "attackers")
+
+    os.makedirs(emp_dir, exist_ok=True)
+    os.makedirs(att_dir, exist_ok=True)
+
+    print(f"\nSaving selected people into {save_root}...\n")
+
+    def save_group(ids, group_dir):
+        for pid in ids:
+            person_name = target_names[pid]
+            person_dir = os.path.join(group_dir, person_name)
+            os.makedirs(person_dir, exist_ok=True)
+
+            # get all indices for this person
+            idxs = np.where(targets == pid)[0]
+
+            for i, idx in enumerate(idxs):
+                img = images[idx]
+
+                # scale if needed
+                if img.max() <= 1:
+                    img = (img * 255).astype(np.uint8)
+                else:
+                    img = img.astype(np.uint8)
+
+                img_path = os.path.join(person_dir, f"img_{i:04d}.jpg")
+                Image.fromarray(img).save(img_path)
+
+            print(f"✓ Saved {len(idxs)} images of {person_name}")
+
+    save_group(employee_ids, emp_dir)
+    save_group(attacker_ids, att_dir)
+
+    print("\n✓ Finished saving selected images!\n")
+
 
 
 def get_images_for_person(

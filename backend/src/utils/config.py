@@ -7,17 +7,18 @@ import os
 from typing import Dict, Any
 
 
-def load_config(config_path: str = "config.yaml") -> Dict[str, Any]:
+def load_config(config_path: str = None) -> Dict[str, Any]:
     """
     Load configuration from YAML file.
-    
-    Args:
-        config_path: Path to config file
-        
-    Returns:
-        Configuration dictionary
+    If no path is provided, load config.yaml from the backend directory.
     """
-    # Default configuration
+    # Determine the backend directory (where this utils folder lives)
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    default_path = os.path.join(base_dir, "config.yaml")
+    
+    # If user didn't pass a path, use backend/config.yaml
+    config_path = config_path or default_path
+    
     default_config = {
         'employee_db_path': 'data/processed/embeddings/employee_db.pkl',
         'patches_dir': 'data/patches',
@@ -26,14 +27,13 @@ def load_config(config_path: str = "config.yaml") -> Dict[str, Any]:
         'patch_detection_threshold': 0.15,
         'device': 'cuda',  # or 'cpu'
     }
-    
-    # Try to load from file
+
     if os.path.exists(config_path):
         try:
             with open(config_path, 'r') as f:
-                file_config = yaml.safe_load(f)
-                default_config.update(file_config)
-                print(f"✓ Loaded config from {config_path}")
+                file_config = yaml.safe_load(f) or {}
+            default_config.update(file_config)
+            print(f"✓ Loaded config from {config_path}")
         except Exception as e:
             print(f"⚠ Error loading config: {e}")
             print("Using default configuration")

@@ -51,7 +51,87 @@ class FaceDataset(Dataset):
             return image, label
         else:
             return image
+        
 
+class LFWTensorDataset(Dataset):
+    """
+    A PyTorch Dataset for the LFW (Labeled Faces in the Wild) images.
+    Handles conversion from sklearn's (N, H, W, 3) numpy array to
+    PyTorch's (3, 128, 128) tensor format. This is used as the base
+    for the PatchDataset when loading LFW raw data.
+    """
+    def __init__(self, images: np.ndarray, labels: np.ndarray, target_size: Tuple[int, int]=(128, 128)):
+        # Pre-process and store images as tensors
+        self.images = []
+        self.labels = labels
+
+        print(f"Resizing and converting base images to {target_size} tensor...")
+        for img in images:
+            # Resize
+            img_pil = Image.fromarray((img * 255).astype(np.uint8))
+            img_pil = img_pil.resize(target_size)
+            
+            # Convert to tensor and normalize to [0,1]
+            # Use torchvision.transforms for cleaner transformation if available, 
+            # otherwise manually convert as in the original notebook:
+            img_tensor = torch.from_numpy(np.array(img_pil)).float() / 255.0
+            
+            # Change from (H,W,3) to (3,H,W)
+            img_tensor = img_tensor.permute(2, 0, 1)
+            self.images.append(img_tensor)
+        print("✓ Images converted.")
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        return self.images[idx], self.labels[idx]
+
+# --- Patch Augmentation Dataset (from previous notebook) ---
+class PatchDataset(Dataset):
+    """
+    Dataset that generates samples for patch detection training.
+    It takes a base dataset (LFWTensorDataset) and randomly overlays 
+    pre-generated patches 50% of the time.
+    """
+    def __init__(self, base_dataset: LFWTensorDataset, patches, masks, num_samples: int):
+        self.base_dataset = base_dataset
+        self.patches = patches
+        self.masks = masks
+        self.num_samples = num_samples
+
+    def __len__(self):
+        return self.num_samples
+
+    def __getitem__(self, idx):
+        base_idx = np.random.randint(0, len(self.base_dataset))
+        image, _ = self.base_dataset[base_idx]
+
+        # 50% chance to add a patch (label 1)
+        if np.random.rand() < 0.5:
+            patch_idx = np.random.randint(0, len(self.patches))
+            patch = self.patches[patch_idx]
+            mask = self.masks[patch_idx]
+
+            img = image.clone()
+            _, img_h, img_w = img.shape
+            _, patch_h, patch_w = patch.shape
+
+            # Choose random location for the patch
+            x = np.random.randint(0, img_w - patch_w)
+            y = np.random.randint(0, img_h - patch_h)
+
+            # Apply circular patch with mask: New = Patch * Mask + Original * (1 - Mask)
+            for c in range(3):
+                img[c, y:y+patch_h, x:x+patch_w] = (
+                    patch[c] * mask +
+                    img[c, y:y+patch_h, x:x+patch_w] * (1 - mask)
+                )
+
+            return img, 1  # has patch
+        else:
+            # No patch (label 0)
+            return image, 0  # clean
 
 def load_lfw_dataset(
     color: bool = True,

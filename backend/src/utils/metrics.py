@@ -4,8 +4,7 @@ Metrics and evaluation utilities.
 
 import numpy as np
 from typing import List, Dict, Tuple
-from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support, classification_report, confusion_matrix
 
 def calculate_attack_success_rate(
     predictions: List[str],
@@ -348,3 +347,54 @@ class MetricsTracker:
             self.metrics_history = json.load(f)
         
         print(f"✓ Loaded {len(self.metrics_history)} experiments from {filepath}")
+
+
+
+def calculate_and_report_metrics(all_labels: List[int], all_preds: List[int], target_names: List[str]) -> Tuple[float, float, float, float]:
+    """
+    Calculates and prints the classification report and key metrics
+    (Accuracy, Precision, Recall, F1) from the confusion matrix.
+
+    Args:
+        all_labels: List of true labels.
+        all_preds: List of predicted labels.
+        target_names: List of class names (e.g., ['Clean', 'Patch']).
+        
+    Returns:
+        Tuple of (accuracy, precision, recall, f1) for the 'Patch' class (1).
+    """
+    print("\n--- Classification Report ---")
+    print(classification_report(all_labels, all_preds, target_names=target_names))
+
+    cm = confusion_matrix(all_labels, all_preds)
+    
+    # Check if the confusion matrix has the expected 2x2 shape
+    if cm.shape != (2, 2):
+        print("\nWarning: Confusion matrix is not 2x2. Cannot calculate TN, FP, FN, TP.")
+        # Return zeros if unable to calculate specific binary metrics
+        return 0.0, 0.0, 0.0, 0.0
+
+    # cm.ravel() flattens the matrix: (TN, FP, FN, TP)
+    tn, fp, fn, tp = cm.ravel()
+
+    # Calculate overall accuracy
+    total = tp + tn + fp + fn
+    accuracy = (tp + tn) / total if total > 0 else 0.0
+    
+    # Calculate binary metrics (Precision, Recall, F1) for the POSITIVE class (Patch, label 1)
+    # Handle division by zero
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    
+    if (precision + recall) > 0:
+        f1 = 2 * (precision * recall) / (precision + recall)
+    else:
+        f1 = 0.0
+
+    print(f'\n--- Key Metrics (Patch Class) ---')
+    print(f'Accuracy: {accuracy*100:.2f}% (Overall)')
+    print(f'Precision: {precision*100:.2f}%')
+    print(f'Recall: {recall*100:.2f}%')
+    print(f'F1-Score: {f1*100:.2f}%')
+    
+    return accuracy, precision, recall, f1

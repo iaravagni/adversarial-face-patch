@@ -12,10 +12,9 @@ A comprehensive implementation of adversarial patch attacks on face recognition 
 - [Usage](#usage)
 - [Results](#results)
 - [Ethics & Responsible AI](#ethics--responsible-ai)
-- [Technical Details](#technical-details)
-- [Future Work](#future-work)
-- [References](#references)
-- [License](#license)
+
+
+
 
 ---
 

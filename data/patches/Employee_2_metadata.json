@@ -1,0 +1,20 @@
+{
+  "type": "circular",
+  "size": 50,
+  "radius": 25,
+  "position": {
+    "x": 62.5008430480957,
+    "y": 12.498640060424805
+  },
+  "bounds": {
+    "x_min": 0.0,
+    "x_max": 160.0,
+    "y_min": 0.0,
+    "y_max": 160.0
+  },
+  "target_employee": "Employee_2",
+  "attacker_name": "Ariel Sharon",
+  "success_rate": 100.0,
+  "tested_target": "Employee_2",
+  "tested_attacker": "Ariel Sharon"
+}

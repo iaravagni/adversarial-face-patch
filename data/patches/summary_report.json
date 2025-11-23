@@ -1,0 +1,98 @@
+[
+  {
+    "attacker": "Arnold Schwarzenegger",
+    "target": "George W Bush",
+    "success_rate": 100.0,
+    "best_similarity": 0.7968011498451233,
+    "pos_x": 73.5014877319336,
+    "pos_y": 35.0
+  },
+  {
+    "attacker": "Arnold Schwarzenegger",
+    "target": "Serena Williams",
+    "success_rate": 100.0,
+    "best_similarity": 0.769911527633667,
+    "pos_x": 55.0,
+    "pos_y": 25.0
+  },
+  {
+    "attacker": "Arnold Schwarzenegger",
+    "target": "Bill Gates",
+    "success_rate": 90.0,
+    "best_similarity": 0.6346165537834167,
+    "pos_x": 69.4964370727539,
+    "pos_y": 25.0
+  },
+  {
+    "attacker": "Arnold Schwarzenegger",
+    "target": "Jennifer Lopez",
+    "success_rate": 90.0,
+    "best_similarity": 0.7058617472648621,
+    "pos_x": 76.49942016601562,
+    "pos_y": 27.498510360717773
+  },
+  {
+    "attacker": "Arnold Schwarzenegger",
+    "target": "Jennifer Aniston",
+    "success_rate": 50.0,
+    "best_similarity": 0.5441440939903259,
+    "pos_x": 80.49809265136719,
+    "pos_y": 25.0
+  },
+  {
+    "attacker": "Arnold Schwarzenegger",
+    "target": "Tiger Woods",
+    "success_rate": 100.0,
+    "best_similarity": 0.7940613031387329,
+    "pos_x": 56.500213623046875,
+    "pos_y": 25.0
+  },
+  {
+    "attacker": "Jennifer Capriati",
+    "target": "George W Bush",
+    "success_rate": 100.0,
+    "best_similarity": 0.7056328058242798,
+    "pos_x": 63.500816345214844,
+    "pos_y": 35.0
+  },
+  {
+    "attacker": "Jennifer Capriati",
+    "target": "Serena Williams",
+    "success_rate": 100.0,
+    "best_similarity": 0.849193274974823,
+    "pos_x": 74.50341033935547,
+    "pos_y": 31.496992111206055
+  },
+  {
+    "attacker": "Jennifer Capriati",
+    "target": "Bill Gates",
+    "success_rate": 80.0,
+    "best_similarity": 0.647354006767273,
+    "pos_x": 76.50177001953125,
+    "pos_y": 32.5013313293457
+  },
+  {
+    "attacker": "Jennifer Capriati",
+    "target": "Jennifer Lopez",
+    "success_rate": 90.0,
+    "best_similarity": 0.6826702356338501,
+    "pos_x": 79.5011978149414,
+    "pos_y": 25.0
+  },
+  {
+    "attacker": "Jennifer Capriati",
+    "target": "Jennifer Aniston",
+    "success_rate": 90.0,
+    "best_similarity": 0.6545959711074829,
+    "pos_x": 77.49974822998047,
+    "pos_y": 25.0
+  },
+  {
+    "attacker": "Jennifer Capriati",
+    "target": "Tiger Woods",
+    "success_rate": 100.0,
+    "best_similarity": 0.7333650588989258,
+    "pos_x": 81.50064849853516,
+    "pos_y": 25.0
+  }
+]

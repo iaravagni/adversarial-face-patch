@@ -16,8 +16,6 @@ from src.models.patch_detection_model import PatchDetector, PatchTrainingDataset
 def main():
     # 1. Setup
     config = load_config()
-    
-    # FIX: Call get_device() without arguments to match your utils/config.py
     device = get_device() 
 
     # 2. Load Base Data (LFW)
@@ -40,7 +38,6 @@ def main():
         base_images.append(tensor_img)
 
     # 3. Create Patch Datasets
-    # We create synthetic datasets that generate patches on the fly
     train_data = PatchTrainingDataset(base_images, num_samples=2000) 
     test_data = PatchTrainingDataset(base_images, num_samples=500)
 
@@ -60,7 +57,6 @@ def main():
     
     # Save path management
     save_dir = config.get('models_dir', 'models')
-    # If path is relative, make it relative to backend root
     if not os.path.isabs(save_dir):
          base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
          save_dir = os.path.join(base_path, save_dir)

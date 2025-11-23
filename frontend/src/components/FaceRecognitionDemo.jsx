@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, ShieldAlert, User, AlertTriangle, Lock, Unlock, Server } from 'lucide-react';
+import { Shield, ShieldAlert, User, AlertTriangle, Lock, Unlock, Server, FileCode, Cpu } from 'lucide-react';
 
 const FaceRecognitionDemo = () => {
   const [imageType, setImageType] = useState('raw'); // 'raw' or 'patched'
@@ -55,7 +55,7 @@ const FaceRecognitionDemo = () => {
 
       const progressInterval = setInterval(() => {
         setScanProgress(prev => Math.min(prev + 1, 99));
-      }, 30); // Slower progress, real scan will finish it
+      }, 30); 
 
       const gridInterval = setInterval(() => {
         setGridOverlay(prev => !prev);
@@ -73,11 +73,31 @@ const FaceRecognitionDemo = () => {
     }
   }, [isScanning]);
 
+  // Reset to raw if target is deselected or if target is needed for patch
+  useEffect(() => {
+    // If no employee is selected OR if we are in patched mode without a target, revert to raw.
+    if (!selectedEmployee && imageType === 'patched') {
+      setImageType('raw');
+    }
+  }, [selectedEmployee, imageType]);
+
   const handleScan = async () => {
-    if (!selectedAttacker || !selectedEmployee) return;
+    // 🔥 CHANGE 1 PART A: Only require attacker for scan initiation.
+    if (!selectedAttacker) return;
+
+    // If patched mode is selected, ensure a target is also selected.
+    if (imageType === 'patched' && !selectedEmployee) {
+        console.error("Cannot scan in patched mode without a target employee.");
+        return;
+    }
+
 
     setIsScanning(true);
     setScanResult(null);
+
+    // Default target_id to 0 or a safe fallback if no target is selected in raw mode, 
+    // ensuring the API receives a value if it's required for the signature.
+    const targetId = selectedEmployee ? selectedEmployee.id : 0; 
 
     try {
       const response = await fetch(`${API_URL}/scan`, {
@@ -87,7 +107,7 @@ const FaceRecognitionDemo = () => {
         },
         body: JSON.stringify({
           attacker_id: selectedAttacker.id,
-          target_id: selectedEmployee.id,
+          target_id: targetId, // Use the resolved ID
           mode: imageType,
           defense: defenseEnabled
         }),
@@ -95,7 +115,7 @@ const FaceRecognitionDemo = () => {
 
       const result = await response.json();
       
-      // Artificial delay for dramatic effect if the server is too fast
+      // Artificial delay for dramatic effect
       setTimeout(() => {
         setScanResult(result);
         setScanProgress(100);
@@ -119,20 +139,23 @@ const FaceRecognitionDemo = () => {
   const getDisplayImageUrl = () => {
     if (!selectedAttacker) return null;
     
-    // Cache bust with timestamp to force refresh if mode changes (though React handles prop changes)
     const baseUrl = `${API_URL}/image`;
     const params = new URLSearchParams({
       attacker_id: selectedAttacker.id,
       mode: imageType,
-      ts: Date.now() // Prevent caching glitches
+      ts: Date.now()
     });
     
-    if (selectedEmployee) {
+    // Target ID is only needed if the mode is 'patched'
+    if (imageType === 'patched' && selectedEmployee) {
       params.append('target_id', selectedEmployee.id);
+    } else if (imageType === 'patched' && !selectedEmployee) {
+      return null;
     }
 
     return `${baseUrl}?${params.toString()}`;
   };
+
 
   return (
     <div className="h-screen w-screen bg-black text-white font-mono overflow-hidden flex flex-col p-2">
@@ -146,11 +169,9 @@ const FaceRecognitionDemo = () => {
               </div>
               <div>
                 <h1 className="text-lg font-bold tracking-wider text-cyan-400">SECURE ID FACIAL RECOGNITION</h1>
-                {/* <p className="text-xs text-cyan-300 tracking-widest">SECURITY CLEARANCE SYSTEM v3.7.2</p> */}
               </div>
             </div>
             <div className="flex items-center gap-4">
-              {/* Server Status Indicator */}
               <div className="flex items-center gap-2 text-xs border border-slate-600 px-2 py-1 rounded bg-slate-800">
                 <Server className={`w-3 h-3 ${serverStatus === 'online' ? 'text-green-400' : 'text-red-400'}`} />
                 <span className={serverStatus === 'online' ? 'text-green-400' : 'text-red-400'}>
@@ -188,9 +209,11 @@ const FaceRecognitionDemo = () => {
           {/* Left Panel - Controls */}
           <div className="xl:col-span-1 space-y-2 flex flex-col h-full overflow-hidden">
             
-            {/* Subject Selection - Takes 2/3 of space */}
+            {/* Subject Selection */}
             <div className="bg-slate-900 border-2 border-cyan-500 rounded-lg p-3 shadow-lg shadow-cyan-500/30 flex-[2] flex flex-col min-h-0">
-              <div className="text-cyan-400 text-xs mb-2 tracking-wider shrink-0">SELECT ATTACKER</div>
+              <div className="text-cyan-400 text-xs mb-2 tracking-wider shrink-0 flex items-center gap-2">
+                <User className="w-3 h-3"/> SELECT ATTACKER (INPUT)
+              </div>
               <div className="grid grid-cols-1 gap-2 mb-4 flex-1 min-h-0 overflow-y-auto">
                 {attackers.map((attacker) => (
                   <button
@@ -205,16 +228,14 @@ const FaceRecognitionDemo = () => {
                         : 'border-slate-600 bg-slate-800 hover:border-red-600'
                     }`}
                   >
-                    <User className="w-4 h-4 text-red-400" />
                     <span>{attacker.name}</span>
                   </button>
                 ))}
-                {attackers.length === 0 && (
-                  <div className="text-center text-gray-500 text-xs mt-4">Loading Attackers...</div>
-                )}
               </div>
 
-              <div className="text-cyan-400 text-xs mb-2 tracking-wider shrink-0">SELECT TARGET EMPLOYEE</div>
+              <div className="text-cyan-400 text-xs mb-2 tracking-wider shrink-0 flex items-center gap-2">
+                <User className="w-3 h-3"/> SELECT TARGET (IMPERSONATION GOAL)
+              </div>
               <div className="grid grid-cols-1 gap-2 flex-[2] min-h-0 overflow-y-auto">
                 {employees.map((employee) => (
                   <button
@@ -229,26 +250,24 @@ const FaceRecognitionDemo = () => {
                         : 'border-slate-600 bg-slate-800 hover:border-green-600'
                     }`}
                   >
-                    <User className="w-4 h-4 text-green-400" />
                     <span className="text-xs">{employee.name}</span>
                   </button>
                 ))}
-                 {employees.length === 0 && (
-                  <div className="text-center text-gray-500 text-xs mt-4">Loading Employees...</div>
-                )}
               </div>
             </div>
 
-            {/* Image Type - Takes 1/3 of space - Stacked Vertically */}
-            <div className="bg-slate-900 border-2 border-cyan-500 rounded-lg p-3 shadow-lg shadow-cyan-500/30 flex-1 flex flex-col justify-center min-h-0">
-              <div className="text-cyan-400 text-xs mb-2 tracking-wider text-center shrink-0">IMAGE MODE</div>
-              <div className="flex flex-col gap-3 flex-1">
+            {/* Image Mode & Patch Info */}
+            <div className="bg-slate-900 border-2 border-cyan-500 rounded-lg p-3 shadow-lg shadow-cyan-500/30 flex-1 flex flex-col min-h-0">
+              <div className="text-cyan-400 text-xs mb-2 tracking-wider text-center shrink-0">ATTACK CONFIGURATION</div>
+              
+              {/* 🔥 CHANGE 2: Change to vertical layout (flex-col) */}
+              <div className="flex flex-col gap-2 flex-1">
                 <button
                   onClick={() => {
                     setImageType('raw');
                     setScanResult(null);
                   }}
-                  className={`flex-1 rounded font-bold text-sm transition-all border-2 flex items-center justify-center ${
+                  className={`rounded font-bold text-xs py-4 transition-all border-2 ${
                     imageType === 'raw'
                       ? 'bg-blue-600 border-blue-400 text-white'
                       : 'bg-slate-800 border-slate-600 text-slate-300 hover:border-blue-600'
@@ -261,10 +280,14 @@ const FaceRecognitionDemo = () => {
                     setImageType('patched');
                     setScanResult(null);
                   }}
-                  className={`flex-1 rounded font-bold text-sm transition-all border-2 flex items-center justify-center ${
+                  // 🔥 CHANGE 1 PART B: Disable if NO target selected
+                  disabled={!selectedEmployee} 
+                  className={`rounded font-bold text-xs py-4 transition-all border-2 ${
                     imageType === 'patched'
                       ? 'bg-red-600 border-red-400 text-white'
-                      : 'bg-slate-800 border-slate-600 text-slate-300 hover:border-red-600'
+                      : !selectedEmployee 
+                        ? 'bg-slate-800 border-slate-700 text-slate-600 cursor-not-allowed'
+                        : 'bg-slate-800 border-slate-600 text-slate-300 hover:border-red-600'
                   }`}
                 >
                   PATCHED INPUT
@@ -282,12 +305,13 @@ const FaceRecognitionDemo = () => {
                 <span className="text-green-400 animate-pulse">● ONLINE</span>
               </div>
 
-              {/* Scan Button Above Scanner */}
+              {/* Scan Button */}
               <button
+                // 🔥 CHANGE 1 PART C: Only disable if NO attacker is selected OR if it's scanning
+                disabled={!selectedAttacker || isScanning || serverStatus !== 'online' || (imageType === 'patched' && !selectedEmployee)}
                 onClick={handleScan}
-                disabled={!selectedAttacker || !selectedEmployee || isScanning || serverStatus !== 'online'}
                 className={`w-full py-3 rounded-lg font-bold text-md tracking-widest transition-all border-2 mb-3 shrink-0 ${
-                  !selectedAttacker || !selectedEmployee || isScanning || serverStatus !== 'online'
+                  !selectedAttacker || isScanning || serverStatus !== 'online' || (imageType === 'patched' && !selectedEmployee)
                     ? 'bg-slate-800 border-slate-700 text-slate-600 cursor-not-allowed'
                     : 'bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-400 text-white hover:from-cyan-500 hover:to-blue-500 shadow-lg shadow-cyan-500/50 animate-pulse'
                 }`}
@@ -295,9 +319,9 @@ const FaceRecognitionDemo = () => {
                 {isScanning ? 'SCANNING...' : serverStatus === 'offline' ? 'SERVER OFFLINE' : 'INITIATE SCAN'}
               </button>
 
-              {/* Scanner Area - Flexible Height */}
+              {/* Scanner Area */}
               <div className="relative bg-black rounded-lg border-2 border-cyan-600 overflow-hidden flex-1 min-h-0 w-full">
-                {selectedAttacker && selectedEmployee ? (
+                {selectedAttacker ? ( // Only check for attacker here, target is checked inside getDisplayImageUrl
                   <>
                     {/* Image */}
                     <img
@@ -305,16 +329,12 @@ const FaceRecognitionDemo = () => {
                       alt="Scan subject"
                       className="w-full h-full object-contain"
                       style={{ filter: isScanning ? 'brightness(1.2) contrast(1.1)' : 'none' }}
-                      onError={(e) => {
-                        e.target.style.display = 'none'; // Hide broken images
-                        // In a real app, show a "Failed to load" placeholder
-                      }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
                     />
 
                     {/* Scanning Overlay */}
                     {isScanning && (
                       <>
-                        {/* Scanning Line */}
                         <div
                           className="absolute left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-lg shadow-cyan-500/50"
                           style={{
@@ -324,7 +344,6 @@ const FaceRecognitionDemo = () => {
                           }}
                         />
 
-                        {/* Grid Overlay */}
                         {gridOverlay && (
                           <div className="absolute inset-0 pointer-events-none">
                             <svg className="w-full h-full" style={{ opacity: 0.3 }}>
@@ -338,23 +357,14 @@ const FaceRecognitionDemo = () => {
                           </div>
                         )}
 
-                        {/* Corner Brackets */}
                         <div className="absolute top-4 left-4 w-16 h-16 border-l-4 border-t-4 border-cyan-400 animate-pulse"></div>
                         <div className="absolute top-4 right-4 w-16 h-16 border-r-4 border-t-4 border-cyan-400 animate-pulse"></div>
                         <div className="absolute bottom-4 left-4 w-16 h-16 border-l-4 border-b-4 border-cyan-400 animate-pulse"></div>
                         <div className="absolute bottom-4 right-4 w-16 h-16 border-r-4 border-b-4 border-cyan-400 animate-pulse"></div>
 
-                        {/* Scanning Info */}
-                        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/80 px-4 py-2 rounded border border-cyan-400">
-                          <div className="text-cyan-400 text-sm font-bold">ANALYZING BIOMETRICS</div>
-                          <div className="text-xs text-cyan-300">Progress: {scanProgress}%</div>
-                        </div>
-
-                        {/* Random scanning data */}
                         <div className="absolute bottom-4 left-4 bg-black/80 px-3 py-2 rounded border border-cyan-400 text-xs">
-                          <div className="text-cyan-400">FACIAL POINTS: 128</div>
-                          <div className="text-cyan-400">IRIS SCAN: ACTIVE</div>
-                          <div className="text-cyan-400">MATCH SEARCH: RUNNING</div>
+                          <div className="text-cyan-400">ANALYZING: {imageType === 'patched' ? 'ADVERSARIAL PATTERN' : 'STANDARD BIOMETRICS'}</div>
+                          <div className="text-cyan-400">MATCH SEARCH: {selectedEmployee ? selectedEmployee.name.toUpperCase() : "RAW MATCH"}</div>
                         </div>
                       </>
                     )}
@@ -380,7 +390,6 @@ const FaceRecognitionDemo = () => {
                           {scanResult.subtext && (
                             <div className="text-sm md:text-lg text-slate-300 mt-1">{scanResult.subtext}</div>
                           )}
-                          {/* Match % Block Removed */}
                         </div>
                       </div>
                     )}
@@ -400,7 +409,9 @@ const FaceRecognitionDemo = () => {
               <div className="mt-3 grid grid-cols-3 gap-3 text-[10px] shrink-0">
                 <div className="bg-slate-800 p-2 rounded border border-cyan-600">
                   <div className="text-cyan-400 mb-1">MODE</div>
-                  <div className="text-white font-bold">{imageType.toUpperCase()}</div>
+                  <div className={`font-bold ${imageType === 'patched' ? 'text-red-400' : 'text-blue-400'}`}>
+                    {imageType === 'patched' ? 'PATCH INJECTION' : 'RAW IMAGE'}
+                  </div>
                 </div>
                 <div className="bg-slate-800 p-2 rounded border border-cyan-600">
                   <div className="text-cyan-400 mb-1">DEFENSE</div>

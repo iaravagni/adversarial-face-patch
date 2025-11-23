@@ -1,0 +1,13 @@
+{
+  "attacker": "Arnold Schwarzenegger",
+  "target_employee": "Jennifer Lopez",
+  "type": "circular",
+  "size": 50,
+  "position": {
+    "x": 76.49942016601562,
+    "y": 27.498510360717773
+  },
+  "success_rate": 90.0,
+  "tested_target": "Jennifer Lopez",
+  "tested_attacker": "Arnold Schwarzenegger"
+}

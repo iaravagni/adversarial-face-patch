@@ -1,0 +1,13 @@
+{
+  "attacker": "Arnold Schwarzenegger",
+  "target_employee": "Tiger Woods",
+  "type": "circular",
+  "size": 50,
+  "position": {
+    "x": 56.500213623046875,
+    "y": 25.0
+  },
+  "success_rate": 100.0,
+  "tested_target": "Tiger Woods",
+  "tested_attacker": "Arnold Schwarzenegger"
+}

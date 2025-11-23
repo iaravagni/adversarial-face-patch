@@ -1,0 +1,13 @@
+{
+  "attacker": "Jennifer Capriati",
+  "target_employee": "Jennifer Lopez",
+  "type": "circular",
+  "size": 50,
+  "position": {
+    "x": 79.5011978149414,
+    "y": 25.0
+  },
+  "success_rate": 100.0,
+  "tested_target": "Jennifer Lopez",
+  "tested_attacker": "Jennifer Capriati"
+}

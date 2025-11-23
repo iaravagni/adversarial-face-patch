@@ -1,0 +1,13 @@
+{
+  "attacker": "Jennifer Capriati",
+  "target_employee": "Tiger Woods",
+  "type": "circular",
+  "size": 50,
+  "position": {
+    "x": 81.50064849853516,
+    "y": 25.0
+  },
+  "success_rate": 100.0,
+  "tested_target": "Tiger Woods",
+  "tested_attacker": "Jennifer Capriati"
+}

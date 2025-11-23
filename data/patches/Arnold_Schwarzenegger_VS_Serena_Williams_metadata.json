@@ -1,0 +1,13 @@
+{
+  "attacker": "Arnold Schwarzenegger",
+  "target_employee": "Serena Williams",
+  "type": "circular",
+  "size": 50,
+  "position": {
+    "x": 55.0,
+    "y": 25.0
+  },
+  "success_rate": 100.0,
+  "tested_target": "Serena Williams",
+  "tested_attacker": "Arnold Schwarzenegger"
+}

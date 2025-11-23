@@ -29,7 +29,7 @@ def main():
     
     images, targets, target_names = load_lfw_dataset(
         color=True,
-        min_faces_per_person=30,
+        min_faces_per_person=10,
     )
 
     
@@ -57,9 +57,6 @@ def main():
         person_count = counts[sorted_idx[i]]
         print(f"  {i+1}. {person_name}: {person_count} images")
     
-    print("\n" + "="*70)
-    print("✓ DATASET DOWNLOAD COMPLETE")
-    print("="*70)
 
 if __name__ == "__main__":
     main()

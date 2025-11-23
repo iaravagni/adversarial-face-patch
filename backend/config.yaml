@@ -32,11 +32,23 @@ patch:
 
 # Dataset parameters
 dataset:
-  num_employees: 5
+  num_employees: 6
   num_attackers: 2
-  images_per_employee: 30
+  images_per_employee: 10
   attacker_train_images: 30
   attacker_test_images: 10
+
+  specific_employees:
+      - 'George W Bush'
+      - 'Serena Williams'
+      - 'Bill Gates'
+      - 'Jennifer Lopez'
+      - 'Jennifer Aniston'
+      - 'Tiger Woods' 
+        
+  specific_attackers:
+      - 'Arnold Schwarzenegger' 
+      - 'Jennifer Capriati'    
 
 # API parameters
 api:

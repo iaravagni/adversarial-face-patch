@@ -362,7 +362,6 @@ We follow strict ethical principles:
 - **LFW Dataset**: Contains public figures' images collected from the web
 - **No Personal Data**: No private or sensitive biometric data is collected
 - **Consent**: All images in LFW are publicly available
-- **Anonymization**: Employee/attacker labels are generic (Employee_1, etc.)
 
 ### Documentation
 

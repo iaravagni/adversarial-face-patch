@@ -82,7 +82,6 @@ const FaceRecognitionDemo = () => {
   }, [selectedEmployee, imageType]);
 
   const handleScan = async () => {
-    // 🔥 CHANGE 1 PART A: Only require attacker for scan initiation.
     if (!selectedAttacker) return;
 
     // If patched mode is selected, ensure a target is also selected.
@@ -95,8 +94,6 @@ const FaceRecognitionDemo = () => {
     setIsScanning(true);
     setScanResult(null);
 
-    // Default target_id to 0 or a safe fallback if no target is selected in raw mode, 
-    // ensuring the API receives a value if it's required for the signature.
     const targetId = selectedEmployee ? selectedEmployee.id : 0; 
 
     try {
@@ -260,7 +257,6 @@ const FaceRecognitionDemo = () => {
             <div className="bg-slate-900 border-2 border-cyan-500 rounded-lg p-3 shadow-lg shadow-cyan-500/30 flex-1 flex flex-col min-h-0">
               <div className="text-cyan-400 text-xs mb-2 tracking-wider text-center shrink-0">ATTACK CONFIGURATION</div>
               
-              {/* 🔥 CHANGE 2: Change to vertical layout (flex-col) */}
               <div className="flex flex-col gap-2 flex-1">
                 <button
                   onClick={() => {
@@ -280,7 +276,6 @@ const FaceRecognitionDemo = () => {
                     setImageType('patched');
                     setScanResult(null);
                   }}
-                  // 🔥 CHANGE 1 PART B: Disable if NO target selected
                   disabled={!selectedEmployee} 
                   className={`rounded font-bold text-xs py-4 transition-all border-2 ${
                     imageType === 'patched'
@@ -307,7 +302,6 @@ const FaceRecognitionDemo = () => {
 
               {/* Scan Button */}
               <button
-                // 🔥 CHANGE 1 PART C: Only disable if NO attacker is selected OR if it's scanning
                 disabled={!selectedAttacker || isScanning || serverStatus !== 'online' || (imageType === 'patched' && !selectedEmployee)}
                 onClick={handleScan}
                 className={`w-full py-3 rounded-lg font-bold text-md tracking-widest transition-all border-2 mb-3 shrink-0 ${

@@ -114,7 +114,7 @@ class FaceRecognitionModel:
             if similarity > max_similarity:
                 max_similarity = similarity
                 if similarity > threshold:
-                    identified_as = name # Store the real name
+                    identified_as = name 
         
         return identified_as, max_similarity
     
@@ -128,7 +128,6 @@ class FaceRecognitionModel:
         """
         try:
             with open(db_path, 'rb') as f:
-                # Load the raw database, which uses keys like 'Employee_1', 'Employee_2', etc.
                 raw_db = pickle.load(f)
             
             remapped_db = {}
@@ -181,7 +180,6 @@ class FaceRecognitionModel:
                 embeddings.append(emb)
         
         if embeddings:
-            # Average embeddings
             avg_embedding = torch.mean(torch.stack(embeddings), dim=0)
             self.employee_embeddings[name] = avg_embedding
             print(f"✓ Added {name} with {len(embeddings)} images")

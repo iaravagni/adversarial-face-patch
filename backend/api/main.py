@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from facenet_pytorch import MTCNN
 from torchvision import transforms
+import glob
 
 
 current_dir = os.path.dirname(os.path.abspath(__file__)) 
@@ -48,6 +49,9 @@ class State:
     patch_detector = None # --- NEW STATE VARIABLE ---
 
 state = State()
+
+CUSTOM_ATTACKER_PLACEHOLDER = "Iara Ravagni"
+CUSTOM_ATTACKER_FOLDER_NAME = "Iara Ravagni"
 
 def resolve_path(relative_path):
     """
@@ -125,24 +129,51 @@ async def startup_event():
         raw_dir_config = state.config["raw_data_dir"]
         raw_dir = resolve_path(raw_dir_config)
             
-        if os.path.exists(raw_dir):
-            attacker_ids = state.metadata['attacker_ids']
-            attacker_names = [state.metadata['target_names'][i] for i in attacker_ids]
+        attacker_ids = state.metadata['attacker_ids']
+        attacker_names_placeholder = [state.metadata['target_names'][i] for i in attacker_ids]
+        
+        print(f"Pre-loading {len(attacker_names_placeholder)} attackers...")
+        
+        # A. Attempt to load LFW-style (non-custom) attackers
+        attackers_path = os.path.join(raw_dir, "attackers")
+        
+        # Use a list comprehension to filter out the custom attacker before calling load_saved_images
+        standard_attacker_names = [
+            name for name in attacker_names_placeholder 
+            if name != CUSTOM_ATTACKER_PLACEHOLDER
+        ]
+        
+        if os.path.exists(attackers_path):
+            loaded_imgs = load_saved_images(attackers_path, standard_attacker_names)
+            for name, imgs in zip(standard_attacker_names, loaded_imgs):
+                if len(imgs) > 0:
+                    state.attacker_images[name] = imgs[0]
+                    
+        # B. Manually load the custom attacker image using the correct folder name
+        if CUSTOM_ATTACKER_PLACEHOLDER in attacker_names_placeholder:
             
-            print(f"Pre-loading {len(attacker_names)} attackers...")
-            # We need to be careful with load_saved_images path construction
-            # It usually appends "attackers" to the path passed
-            attackers_path = os.path.join(raw_dir, "attackers")
-            if os.path.exists(attackers_path):
-                loaded_imgs = load_saved_images(attackers_path, attacker_names)
-                for name, imgs in zip(attacker_names, loaded_imgs):
-                    if len(imgs) > 0:
-                        state.attacker_images[name] = imgs[0]
+            # The folder path is raw_dir / "attackers" / "Iara Ravagni"
+            custom_attacker_folder_path = os.path.join(raw_dir, "attackers", CUSTOM_ATTACKER_FOLDER_NAME)
+            
+            # Find the FIRST image file inside that specific folder
+            image_files = glob.glob(os.path.join(custom_attacker_folder_path, "*.jpg")) + \
+                          glob.glob(os.path.join(custom_attacker_folder_path, "*.png"))
+                          
+            if image_files:
+                # Use the first image found as the representative image
+                representative_image_path = image_files[0]
+                
+                try:
+                    img = Image.open(representative_image_path).convert('RGB')
+                    
+                    # Store the image using the original metadata KEY (the placeholder name)
+                    state.attacker_images[CUSTOM_ATTACKER_PLACEHOLDER] = img
+                    print(f"✓ Loaded custom attacker '{CUSTOM_ATTACKER_FOLDER_NAME}' using key '{CUSTOM_ATTACKER_PLACEHOLDER}'")
+                except Exception as e:
+                    print(f"ERROR loading custom attacker image from {representative_image_path}: {e}")
             else:
-                 print(f"WARNING: Attackers folder not found at {attackers_path}")
-        else:
-            print(f"WARNING: Raw data directory not found at {raw_dir}")
-
+                print(f"WARNING: No image files found in folder: {custom_attacker_folder_path}")
+   
     # 5. Pre-load Patches
     patches_dir_config = state.config['patches_dir']
     patches_dir = resolve_path(patches_dir_config)
@@ -268,7 +299,6 @@ async def get_image(attacker_id: int, target_id: int = None, mode: str = Query("
             # 2. Apply Patch if mode is patched
             if mode == "patched" and target_name is not None and state.patches:
                 
-                # 🔥 CRITICAL FIX: Construct the specific patch filename
                 patch_filename = f"{attacker_name.replace(' ', '_')}_VS_{target_name.replace(' ', '_')}.pt"
                 patch_path = state.patches.get(patch_filename)
                 
@@ -339,7 +369,6 @@ async def scan_face(payload: dict):
     
     # 1. Apply Patch if mode is "patched"
     if mode == "patched" and target_id is not None and state.patches:
-        # 🔥 CRITICAL FIX: Construct the specific patch filename
         patch_filename = f"{attacker_name.replace(' ', '_')}_VS_{target_name.replace(' ', '_')}.pt"
         patch_path = state.patches.get(patch_filename)
         

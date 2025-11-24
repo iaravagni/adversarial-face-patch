@@ -3,7 +3,6 @@
 A comprehensive implementation of adversarial patch attacks on face recognition systems and corresponding defense mechanisms. This project demonstrates vulnerabilities in facial recognition AI and develops robust countermeasures.
 
 ## 📋 Table of Contents
-
 - [Overview](#overview)
 - [Team](#team)
 - [Project Structure](#project-structure)
@@ -12,9 +11,8 @@ A comprehensive implementation of adversarial patch attacks on face recognition 
 - [Usage](#usage)
 - [Results](#results)
 - [Ethics & Responsible AI](#ethics--responsible-ai)
-
-
-
+- [References](#references)
+- [License](#license)
 
 ---
 
@@ -24,29 +22,28 @@ This project explores the security vulnerabilities of face recognition systems t
 
 ### What are Adversarial Patches?
 
-Adversarial patches are specially crafted patterns that, when placed in the physical world (e.g., worn as stickers), can fool AI-based face recognition systems. These patches can:
-- Make faces undetectable to recognition systems
-- Cause misidentification of individuals
-- Work under various lighting and angles
+Adversarial patches are specially crafted patterns that, when placed on a person's forehead, can fool AI-based face recognition systems. These patches can:
+- Cause misidentification by impersonating another individual
+- Work under various lighting conditions and angles
+- Be optimized to target specific identities in the system
 
 ### Project Goals
 
-1. **Attack Implementation**: Generate adversarial patches that can fool face recognition models
-2. **Defense Implementation**: Develop detection mechanisms to identify adversarial patches
-3. **Robustness Training**: Create face recognition models resistant to adversarial attacks
-4. **Security Research**: Contribute to understanding and improving AI security
+1. **Attack Implementation**: Generate adversarial patches that enable impersonation attacks on face recognition models
+2. **Defense Implementation**: Develop CNN-based detection mechanisms to identify adversarial patches
+3. **Security Research**: Contribute to understanding and improving AI security in biometric systems
 
 ---
 
 ## 👥 Team
 
 **Research Team Members:**
--Lalit Lakamsani
--Iara Ravagni
--Shefali ahUJA
+- Lalit Lakamsani
+- Iara Ravagni
+- Shefali Ahuja
 
-**Institution**: Duke University
-**Course**: CYBERSEC 590: AI for Offensive and Defensive Security 
+**Institution**: Duke University  
+**Course**: CYBERSEC 590: AI for Offensive and Defensive Security  
 **Date**: November 2025
 
 ---
@@ -54,66 +51,89 @@ Adversarial patches are specially crafted patterns that, when placed in the phys
 ## 📁 Project Structure
 
 ```
-adversarial-face-patch/
-├── notebooks/
-│   ├── adversarial_attack.ipynb    # Attack implementation (Strategy: Patch Generation)
-│   └── Defense.ipynb               # Defense implementation (Strategies 1 & 3)
-├── ETHICS.md                       # Ethical guidelines and responsible use
-├── AI_DISCLOSURE.md                # AI systems transparency and disclosure
-├── README.md                       # This file
-└── LICENSE                         # Project license
+.
+├── AI_DISCLOSURE.md
+├── backend
+│   ├── api
+│   │   ├── __init__.py
+│   │   └── main.py
+│   ├── config.yaml
+│   ├── models
+│   │   └── patch_detector.pth
+│   ├── requirements.txt
+│   ├── scripts
+│   │   ├── attack
+│   │   │   ├── 01_download_data.py
+│   │   │   ├── 02_build_employee_db.py
+│   │   │   ├── 03_baseline_test.py
+│   │   │   ├── 04_optimize_patch.py
+│   │   │   ├── 05_attack_test.py
+│   │   │   └── 06_generate_report.py
+│   │   └── defense
+│   │       ├── 01_train_detector.py
+│   │       └── 02_test_detector.py
+│   └── src
+│       ├── __init__.py
+│       ├── attack
+│       │   ├── evaluator.py
+│       │   ├── patch_application.py
+│       │   └── patch_generator.py
+│       ├── data
+│       │   └── dataset.py
+│       ├── defense
+│       │   └── patch_detection.py
+│       ├── models
+│       │   ├── embedding_db.py
+│       │   ├── face_recognition.py
+│       │   └── patch_detection_model.py
+│       └── utils
+│           ├── config.py
+│           ├── embedding_utils.py
+│           ├── metrics.py
+│           └── visualization.py
+├── data
+│   ├── patches
+│   ├── processed
+│   │   ├── attackers
+│   │   ├── embeddings
+│   │   └── employees
+│   └── raw
+│       ├── attackers
+│       └── employees
+├── ETHICS.md
+├── frontend
+├── LICENSE
+└── README.md
 ```
 
 ---
 
 ## ✨ Features
 
-### Attack Module (`adversarial_attack.ipynb`)
+### Attack Module (`scripts/attack/`)
 
-- **Circular Patch Generation**: Creates optimized adversarial patches with circular masks
-- **Face Recognition Attacks**: Tests attacks on face detection/recognition systems
-- **Physical World Applicable**: Patches can be printed and used in real scenarios
-- **Optimization Methods**: Uses gradient-based optimization to create effective patches
+- **Employee Database Creation**: Builds a face recognition database from the LFW dataset
+- **Circular Patch Optimization**: Uses gradient-based optimization to create adversarial patches
+- **Targeted Impersonation**: Patches are optimized to make attackers be recognized as specific target employees
+- **Forehead Placement**: Patches are positioned on the forehead with learnable position optimization
+- **Physical World Applicable**: Patches designed for real-world printing and use
 
-### Defense Module (`Defense.ipynb`)
+### Defense Module (`scripts/defense/`)
 
-#### Strategy 1: Patch Detector
-- **Binary Classification**: CNN-based model to detect adversarial patches
-- **Detection Accuracy**: 85-95% patch detection rate
+#### Patch Detector (CNN-based Binary Classifier)
+- **Binary Classification**: Distinguishes between clean faces and faces with adversarial patches
+- **Synthetic Training Data**: Generates training data by applying random patches to clean face images
+- **High Detection Accuracy**: Achieves 85-95% accuracy in detecting adversarial patches
 - **Fast Inference**: Real-time detection capability
-- **Visualization Tools**: Confusion matrices and performance metrics
-
-#### Strategy 3: Adversarial Training
-- **Robust Face Recognition**: Model trained on patched images
-- **Improved Robustness**: 30-40% accuracy improvement on attacked images
-- **Maintains Performance**: Minimal accuracy drop on clean images
-
-### Additional Features
-
-- **Custom Dataset Support**: Use your own face images
-- **Circular Patch Masks**: Realistic patch shapes matching attack patterns
-- **RAM Optimized**: Runs on Google Colab free tier
-- **Comprehensive Evaluation**: Multiple metrics and visualizations
-- **Ethics Documentation**: Responsible AI practices built-in
+- **Visualization Tools**: Includes confusion matrices and sample prediction visualizations
 
 ---
 
 ## 🚀 Installation
 
 ### Prerequisites
-
-- Python 3.7+
-- Google Colab (recommended) or local Jupyter environment
-- GPU (optional, but recommended for faster training)
-
-### Required Libraries
-
-```bash
-pip install torch torchvision
-pip install scikit-learn
-pip install matplotlib seaborn
-pip install numpy pillow
-```
+- Python 3.8+
+- CUDA-capable GPU (recommended) or CPU
 
 ### Setup
 
@@ -123,70 +143,92 @@ git clone https://github.com/iaravagni/adversarial-face-patch.git
 cd adversarial-face-patch
 ```
 
-2. **Upload to Google Colab:**
-- Upload notebooks to Colab
-- Or use "Open in Colab" badges (if available)
+2. **Install dependencies:**
+```bash
+cd backend
+pip install -r requirements.txt
+```
 
-3. **Prepare Dataset:**
-   - **Option A**: Use LFW dataset (downloads automatically)
-   - **Option B**: Upload your own face images (see Custom Dataset section)
+3. **Configure the project:**
+Edit `backend/config.yaml` to set your desired parameters:
+- Dataset settings (number of employees, attackers)
+- Patch optimization parameters
+- Model paths
+- Device settings (CPU/CUDA)
 
 ---
 
 ## 💻 Usage
 
-### Running the Attack
+### Running the Attack Pipeline
 
-1. Open `notebooks/adversarial_attack.ipynb` in Google Colab
-2. Run all cells sequentially
-3. The notebook will:
-   - Load face dataset
-   - Generate adversarial patches
-   - Test attacks on face recognition
-   - Visualize results
+Navigate to the backend directory and run scripts in order:
 
-**Output**: Adversarial patches saved as `.pt` files
+```bash
+cd backend
 
-### Running the Defense
+# Step 1: Download LFW dataset
+python scripts/attack/01_download_data.py
 
-1. Open `notebooks/Defense.ipynb` in Google Colab
-2. Run all cells sequentially
-3. The notebook will:
-   - Load face dataset
-   - Generate/load adversarial patches
-   - Train patch detector (Strategy 1)
-   - Train robust classifier (Strategy 3)
-   - Evaluate and visualize results
+# Step 2: Build employee face database
+python scripts/attack/02_build_employee_db.py
 
-**Output**: 
-- Trained models (`.pth` files)
-- Performance metrics
-- Visualizations
+# Step 3: Test baseline face recognition (no attack)
+python scripts/attack/03_baseline_test.py
 
-### Using Custom Dataset
+# Step 4: Optimize adversarial patch
+python scripts/attack/04_optimize_patch.py
 
-To use your own face images:
+# Step 5: Test patch attack effectiveness
+python scripts/attack/05_attack_test.py
 
-```python
-# In the notebook, replace dataset loading with:
-from PIL import Image
-import os
-
-class CustomFaceDataset:
-    def __init__(self, image_folder, image_size=128):
-        self.image_folder = image_folder
-        self.image_files = [f for f in os.listdir(image_folder) 
-                           if f.endswith(('.jpg', '.png'))]
-        # ... (see notebooks for full implementation)
-
-# Use it:
-my_dataset = CustomFaceDataset('path/to/your/images')
+# Step 6: Generate comprehensive report
+python scripts/attack/06_generate_report.py
 ```
 
-**For this project**, we used:
-- ~90 face images (30 per team member)
-- All images collected with explicit consent
-- Diverse angles, lighting, and expressions
+**Outputs:**
+- Employee face embeddings database
+- Optimized adversarial patches (`.pt` and `.png` files)
+- Attack success metrics and visualizations
+
+### Running the Defense Pipeline
+
+```bash
+cd backend
+
+# Step 1: Train patch detector
+python scripts/defense/01_train_detector.py
+
+# Step 2: Test detector performance
+python scripts/defense/02_test_detector.py
+```
+
+**Outputs:**
+- Trained patch detector model (`models/patch_detector.pth`)
+- Performance metrics (accuracy, precision, recall, F1-score)
+- Confusion matrix and prediction visualizations
+
+### Configuration
+
+Key parameters in `config.yaml`:
+
+```yaml
+dataset:
+  num_employees: 5              # Number of employees in database
+  num_attackers: 3              # Number of attackers to test
+  images_per_employee: 8        # Images for building employee embeddings
+  attacker_train_images: 15     # Images for patch optimization
+  attacker_test_images: 10      # Images for testing attack
+
+patch:
+  radius: 30                    # Patch radius in pixels
+  optimization:
+    iterations: 500             # Optimization iterations
+    lr_content: 0.01           # Learning rate for patch content
+    lr_position: 1.0           # Learning rate for patch position
+
+classification_threshold: 0.6   # Cosine similarity threshold
+```
 
 ---
 
@@ -194,40 +236,45 @@ my_dataset = CustomFaceDataset('path/to/your/images')
 
 ### Attack Performance
 
+The adversarial patch attack achieves targeted impersonation by optimizing circular patches placed on the forehead:
+
 | Metric | Value |
 |--------|-------|
-| Face Detection Evasion | 70-85% |
-| Misclassification Rate | 60-75% |
-| Physical World Success | 50-70% |
-| Patch Size | 40-80 pixels |
+| Attack Success Rate | 90.8% |
+| Average Confidence (successful attacks) | 0.65-0.75 |
+| Patch Size | 60x60 pixels (radius: 25) |
+
+**Key Observations:**
+- Patches successfully cause face recognition to misidentify attackers as target employees
+- Optimization converges within 200-500 iterations
+- Position optimization helps find optimal forehead placement
+- Circular masks provide more natural-looking patches
 
 ### Defense Performance
 
-#### Strategy 1: Patch Detector
+#### Patch Detector (CNN Binary Classifier)
 
 | Metric | Value |
 |--------|-------|
-| Detection Accuracy | 85-95% |
-| Precision | 88-92% |
-| Recall | 85-90% |
+| Test Accuracy | 85-95% |
+| Precision (Patch Detection) | 88-92% |
+| Recall (Patch Detection) | 85-90% |
 | F1-Score | 87-91% |
 | False Positive Rate | 5-10% |
 
-#### Strategy 3: Adversarial Training
-
-| Model Type | Clean Images | Patched Images |
-|------------|--------------|----------------|
-| Normal Model | 80-85% | 40-50% |
-| Robust Model | 75-80% | 70-80% |
-| **Improvement** | -5% | **+25-30%** |
+**Training Details:**
+- Trained on 2,000 synthetic samples (clean + patched faces)
+- Tested on 500 separate samples
+- Converges in ~5 epochs
+- Real-time inference capability
 
 ### Key Findings
 
-1. ✅ **Adversarial patches are effective** at fooling face recognition systems
-2. ✅ **Patch detectors work well** with 85-95% accuracy
-3. ✅ **Adversarial training significantly improves robustness** (30-40% gain)
-4. ⚠️ **Trade-off exists**: Robust models slightly less accurate on clean images
-5. 🔍 **Circular patches are more realistic** and harder to detect than squares
+1. ✅ **Adversarial patches successfully enable impersonation attacks** with 90% success rate
+2. ✅ **CNN-based patch detectors are effective** at identifying adversarial patches (85-95% accuracy)
+3. ✅ **Circular patches with optimized positioning** improve attack success over fixed-position patches
+4. ✅ **Synthetic training data is sufficient** for training effective patch detectors
+5. ⚠️ **Trade-off exists**: Detection accuracy varies with patch size and complexity
 
 ---
 
@@ -237,19 +284,19 @@ my_dataset = CustomFaceDataset('path/to/your/images')
 
 **⚠️ IMPORTANT DISCLAIMER ⚠️**
 
-This project is for **educational and research purposes only**. 
+This project is for **educational and research purposes only**. It is designed to demonstrate vulnerabilities in AI systems to promote better security practices.
 
 #### ✅ Appropriate Uses:
 - Academic research and learning
-- Security testing with authorization
+- Security testing with proper authorization
 - Developing defensive mechanisms
 - Understanding AI vulnerabilities
-- Contributing to AI safety
+- Contributing to AI safety research
 
 #### ❌ Prohibited Uses:
-- Attacking real-world systems without permission
-- Evading surveillance or security systems
-- Privacy violations
+- Attacking production systems without authorization
+- Evading security or surveillance systems
+- Privacy violations or unauthorized surveillance
 - Identity fraud or impersonation
 - Any illegal activities
 
@@ -257,65 +304,43 @@ This project is for **educational and research purposes only**.
 
 We follow strict ethical principles:
 
-1. **Consent**: All personal images used with explicit consent
-2. **Controlled Environment**: Testing only in isolated systems
-3. **Defensive Focus**: Emphasis on defense, not exploitation
-4. **Transparency**: All methods documented for peer review
-5. **Responsible Disclosure**: Vulnerabilities reported properly
+1. **Public Dataset Only**: Uses only the publicly available LFW dataset
+2. **Controlled Environment**: All testing performed in isolated research environment
+3. **Defensive Focus**: Primary emphasis on detection and defense mechanisms
+4. **Transparency**: All methods fully documented for peer review
+5. **Responsible Disclosure**: Findings shared to improve security
+
+### Data Privacy
+
+- **LFW Dataset**: Contains public figures' images collected from the web
+- **No Personal Data**: No private or sensitive biometric data is collected
+- **Consent**: All images in LFW are publicly available
 
 ### Documentation
 
 For detailed ethical considerations, see:
-- [`ETHICS.md`](ETHICS.md) - Complete ethical guidelines
-- [`AI_DISCLOSURE.md`](AI_DISCLOSURE.md) - AI systems transparency
-
-### Responsible Disclosure
-
-If you discover vulnerabilities using these techniques:
-1. ❌ Do NOT exploit them
-2. 📧 Report to affected vendor privately
-3. ⏳ Allow 90 days for fixes
-4. 📢 Coordinate public disclosure
+- [`ETHICS.md`](ETHICS.md) - Complete ethical guidelines and considerations
+- [`AI_DISCLOSURE.md`](AI_DISCLOSURE.md) - AI systems usage transparency
 
 ---
 
-
-## 🚧 Future Work
-
-### Planned Improvements
-
-1. **Advanced Attacks**
-   - Multi-patch attacks
-   - Physical world validation with printed patches
-   - Adaptive attacks against defenses
-
-2. **Enhanced Defenses**
-   - Patch localization and removal
-   - Ensemble detection methods
-   - Real-time defense deployment
-
-3. **Robustness Testing**
-   - Cross-dataset evaluation
-   - Different face recognition architectures
-   - Adversarial training variations
-
-4. **Fairness & Bias**
-   - Test across diverse demographics
-   - Analyze performance disparities
-   - Develop fair defense mechanisms
-
-
 ## 📚 References
+
+### Key Papers
+
+1. **Adversarial Patch**: Tom B. Brown et al., "Adversarial Patch" (2017)
+2. **Face Recognition Security**: Mahmood Sharif et al., "Accessorize to a Crime: Real and Stealthy Attacks on State-of-the-Art Face Recognition" (2016)
 
 ### Datasets
 
-- **LFW**: [Labeled Faces in the Wild](http://vis-www.cs.umass.edu/lfw/)
+- **Labeled Faces in the Wild (LFW)**: [http://vis-www.cs.umass.edu/lfw/](http://vis-www.cs.umass.edu/lfw/)
 
-### Tools & Libraries
+### Models & Libraries
 
+- **FaceNet (PyTorch)**: Face recognition model using Inception-ResNet
 - **PyTorch**: Deep learning framework
-- **scikit-learn**: Machine learning tools
-- **Google Colab**: Cloud computing platform
+- **facenet-pytorch**: Pre-trained FaceNet models
+- **scikit-learn**: Machine learning utilities
 
 ---
 
@@ -326,50 +351,25 @@ This project is released under an **Educational Use License**.
 ### Terms
 
 - ✅ Free to use for academic research and learning
-- ✅ Must cite this repository if used in publications
-- ❌ Commercial use prohibited without permission
-- ❌ Must not be used for malicious purposes
-- ⚖️ Users must comply with all applicable laws
+- ✅ Must cite this repository if used in publications or derivative works
+- ❌ Commercial use prohibited without explicit permission
+- ❌ Must not be used for malicious purposes or illegal activities
+- ⚖️ Users must comply with all applicable laws and regulations
+- ⚖️ Users must respect privacy rights and obtain necessary authorizations
 
+For full license terms, see [`LICENSE`](LICENSE).
 
 ---
 
 ## 🤝 Contributing
 
-While this is primarily an academic project, we welcome:
+We welcome contributions that:
+- Improve detection mechanisms
+- Add new defense strategies
+- Enhance documentation
+- Fix bugs or improve code quality
 
-- 🐛 Bug reports
-- 💡 Suggestions for improvements
-- 📖 Documentation enhancements
-- 🔬 Additional research contributions
-
-**Please follow:**
-1. Create an issue first
-2. Fork the repository
-3. Create your branch (`git checkout -b feature/AmazingFeature`)
-4. Commit changes (`git commit -m 'Add AmazingFeature'`)
-5. Push to branch (`git push origin feature/AmazingFeature`)
-6. Open a Pull Request
-
----
-
-## 📧 Contact
-
-**Project Team**: [Your email or contact info]
-
-**For Security Issues**: Please report responsibly (see ETHICS.md)
-
-**For Academic Collaboration**: [Instructor/Advisor contact]
-
----
-
-## 🙏 Acknowledgments
-
-- Thanks to the LFW dataset creators
-- Google Colab for computational resources
-- Original adversarial patch research papers
-- Dr. Brinnae Bent
-- Open source community
+Please ensure all contributions follow ethical guidelines and include appropriate documentation.
 
 ---
 
@@ -377,5 +377,17 @@ While this is primarily an academic project, we welcome:
 
 If you use this work in your research, please cite:
 
+```bibtex
+@software{adversarial_face_patch_2025,
+  title = {Adversarial Face Patch: Attack \& Defense},
+  author = {Lakamsani, Lalit and Ravagni, Iara and Ahuja, Shefali},
+  year = {2025},
+  institution = {Duke University},
+  course = {CYBERSEC 590: AI for Offensive and Defensive Security},
+  url = {https://github.com/iaravagni/adversarial-face-patch}
+}
+```
+
+---
 
 **⚠️ Remember: Use Responsibly | Research Ethically | Build Secure AI ⚠️**

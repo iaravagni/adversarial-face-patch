@@ -295,7 +295,7 @@ The adversarial patch attack achieves targeted impersonation by optimizing circu
 | F1-Score | 100% |
 
 **Training Details:**
-- Trained on 2,500 synthetic samples (clean + patched faces)
+- Trained on 2,000 synthetic samples, tested on 500 synthetic samples. (clean + patched faces)
 - Converges in ~5 epochs
 - Real-time inference capability
 

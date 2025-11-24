@@ -287,11 +287,12 @@ The adversarial patch attack achieves targeted impersonation by optimizing circu
 
 #### Patch Detector (CNN Binary Classifier)
 
-Metrics:
-Accuracy: 100.00%
-Precision: 100.00%
-Recall: 100.00%
-F1-Score: 100.00%
+| Metric | Value |
+|--------|-------|
+| Accuracy | 99-100% |
+| Precision | 100% |
+| Recall | 100% |
+| F1-Score | 100% |
 
 **Training Details:**
 - Trained on 2,500 synthetic samples (clean + patched faces)

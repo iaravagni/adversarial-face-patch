@@ -239,15 +239,9 @@ dataset:
   images_per_employee: 8        # Images for building employee embeddings
   attacker_train_images: 15     # Images for patch optimization
   attacker_test_images: 10      # Images for testing attack
-  specific_employees:           # Specific people from LFW dataset
-    - Bill Gates
-    - George W Bush
-    - Colin Powell
-    - Tony Blair
-    - Gerhard Schroeder
 
 patch:
-  radius: 30                    # Patch radius in pixels
+  radius: 25                    # Patch radius in pixels
   forehead_bounds:              # Patch position constraints
     x_min: 0
     x_max: 160

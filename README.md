@@ -10,20 +10,6 @@ A comprehensive implementation of adversarial patch attacks on face recognition 
 
 ---
 
-## 📋 Table of Contents
-- [Overview](#overview)
-- [Team](#team)
-- [Project Structure](#project-structure)
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Results](#results)
-- [Ethics & Responsible AI](#ethics--responsible-ai)
-- [References](#references)
-- [License](#license)
-
----
-
 ## 🎯 Overview
 
 This project explores the security vulnerabilities of face recognition systems through adversarial patch attacks and develops defensive mechanisms to detect and mitigate these attacks.
@@ -308,8 +294,7 @@ Recall: 100.00%
 F1-Score: 100.00%
 
 **Training Details:**
-- Trained on 2,000 synthetic samples (clean + patched faces)
-- Tested on 500 separate samples
+- Trained on 2,500 synthetic samples (clean + patched faces)
 - Converges in ~5 epochs
 - Real-time inference capability
 

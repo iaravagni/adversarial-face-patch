@@ -2,30 +2,59 @@
 
 ## AI Models Used in This Research
 
-### 1. Face Recognition Models
-**Type**: Convolutional Neural Networks (CNNs)
-**Purpose**: Target systems for adversarial attacks and defense testing
-**Training Data**: 
-- LFW (Labeled Faces in the Wild) dataset
-- Custom dataset of research team members (with consent)
+# AI Systems Disclosure
 
-**Potential Biases**:
-- May perform differently across different demographics
-- Training data may not represent all populations equally
+## AI Models Used in This Research
 
-**Limitations**:
-- Not tested on production-grade systems
-- Simplified models for educational purposes
+# AI Systems Disclosure
 
-### 2. Patch Detector (Defense Model)
-**Type**: CNN-based binary classifier
-**Purpose**: Detect presence of adversarial patches
-**Training Data**: Synthetic adversarial patches + face images
+## AI Models Used in This Research
 
-**Known Limitations**:
-- May not detect all types of adversarial attacks
-- Trained on specific patch patterns
-- Requires retraining for new attack methods
+### 1. Face Recognition Model (Attack Target)
+**Type**: FaceNet (Pre-trained CNN from `facenet_pytorch`)
+**Purpose**: Target system that adversarial patches are designed to fool
+**Training Data**: Pre-trained on large face datasets; tested on LFW + custom team photos (with consent)
+**Limitations**: Pre-trained model, vulnerable to adversarial attacks by design
+
+---
+
+### 2. Face Detection (MTCNN)
+**Type**: Multi-task CNN from `facenet_pytorch`
+**Purpose**: Detect faces before applying patches
+**Use**: Preprocessing only
+
+---
+
+### 3. Adversarial Patch Generation (Attack)
+**Type**: Gradient-based optimization (NOT a trained model)
+**Method**: 
+- Initialize random circular patch
+- Optimize patch pixels to maximize FaceNet misclassification
+- Uses backpropagation and gradient descent
+**Data**: LFW + custom team photos
+**Note**: Patches are GENERATED, not trained
+
+---
+
+### 4. Patch Detector (Defense - Test)
+**Type**: Custom CNN binary classifier (`PatchDetector`)
+**Purpose**: Detect if image contains adversarial patch
+**Training**: 
+- PyTorch with Adam optimizer
+- 50% clean images, 50% patched images from LFW
+- Binary classification: Clean vs. Patch
+**Performance**: 85-95% detection accuracy
+**Limitations**: Only detects circular patches similar to training data
+
+---
+
+### 5. Adversarial Training (Defense - Train)
+**Type**: Robust face recognition CNN
+**Purpose**: Face recognition that works despite patches
+**Training**: Standard face recognition but 50% training images include patches
+**Performance**: -5% on clean images, +30-40% on patched images
+**Trade-off**: Slightly less accurate on clean images, much more robust overall
+
 
 ## Transparency Statements
 

@@ -1,0 +1,13 @@
+{
+  "attacker": "Iara Ravagni",
+  "target_employee": "Tiger Woods",
+  "type": "circular",
+  "size": 50,
+  "position": {
+    "x": 75.49886322021484,
+    "y": 35.0
+  },
+  "success_rate": 100.0,
+  "tested_target": "Tiger Woods",
+  "tested_attacker": "Custom_Drive_Attacker"
+}

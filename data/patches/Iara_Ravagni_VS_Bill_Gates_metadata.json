@@ -1,0 +1,13 @@
+{
+  "attacker": "Iara Ravagni",
+  "target_employee": "Bill Gates",
+  "type": "circular",
+  "size": 50,
+  "position": {
+    "x": 105.0,
+    "y": 25.0
+  },
+  "success_rate": 0.0,
+  "tested_target": "Bill Gates",
+  "tested_attacker": "Custom_Drive_Attacker"
+}

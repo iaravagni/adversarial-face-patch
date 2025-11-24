@@ -1,0 +1,13 @@
+{
+  "attacker": "Jennifer Capriati",
+  "target_employee": "George W Bush",
+  "type": "circular",
+  "size": 50,
+  "position": {
+    "x": 63.500816345214844,
+    "y": 35.0
+  },
+  "success_rate": 100.0,
+  "tested_target": "George W Bush",
+  "tested_attacker": "Jennifer Capriati"
+}

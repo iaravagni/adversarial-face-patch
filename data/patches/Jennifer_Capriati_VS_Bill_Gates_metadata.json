@@ -1,0 +1,13 @@
+{
+  "attacker": "Jennifer Capriati",
+  "target_employee": "Bill Gates",
+  "type": "circular",
+  "size": 50,
+  "position": {
+    "x": 76.50177001953125,
+    "y": 32.5013313293457
+  },
+  "success_rate": 80.0,
+  "tested_target": "Bill Gates",
+  "tested_attacker": "Jennifer Capriati"
+}

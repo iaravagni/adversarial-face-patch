@@ -1,0 +1,13 @@
+{
+  "attacker": "Iara Ravagni",
+  "target_employee": "George W Bush",
+  "type": "circular",
+  "size": 50,
+  "position": {
+    "x": 67.50038146972656,
+    "y": 35.0
+  },
+  "success_rate": 100.0,
+  "tested_target": "George W Bush",
+  "tested_attacker": "Custom_Drive_Attacker"
+}

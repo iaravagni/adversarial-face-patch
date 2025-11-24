@@ -5,15 +5,17 @@ Handles face detection, embedding extraction, and classification.
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from PIL import Image
 import numpy as np
 from typing import Optional, Tuple, Dict
 import pickle
+from src.utils.config import load_config
 
 
 class FaceRecognitionModel:
-    """Face recognition model for employee identification"""
+    """Face recognition model for employee identification, using real names as keys."""
     
     def __init__(self, device: torch.device):
         """
@@ -37,8 +39,12 @@ class FaceRecognitionModel:
             pretrained='vggface2'
         ).eval().to(device)
         
-        # Employee database (embeddings)
+        # Employee database (embeddings) - keys will be real names (e.g., 'Bill Gates')
         self.employee_embeddings: Dict[str, torch.Tensor] = {}
+        
+        # Load the configuration to get the expected employee list for key remapping
+        config = load_config()
+        self.employee_names: List[str] = config['dataset']['specific_employees'] 
         
         print(f"Face recognition model initialized on {device}")
     
@@ -81,7 +87,7 @@ class FaceRecognitionModel:
         Returns:
             Cosine similarity score
         """
-        return torch.nn.functional.cosine_similarity(emb1, emb2).item()
+        return F.cosine_similarity(emb1, emb2).item()
     
     def classify_face(
         self,
@@ -96,40 +102,55 @@ class FaceRecognitionModel:
             threshold: Similarity threshold for positive identification
             
         Returns:
-            Tuple of (identified_name, confidence_score)
+            Tuple of (identified_name/Unknown, confidence_score) - uses real names.
         """
         max_similarity = -1
         identified_as = "Unknown"
         
         for name, emb in self.employee_embeddings.items():
+            # 'name' is the real name (e.g., "Bill Gates")
             similarity = self.cosine_similarity(test_embedding, emb)
             
             if similarity > max_similarity:
                 max_similarity = similarity
                 if similarity > threshold:
-                    identified_as = name
+                    identified_as = name 
         
         return identified_as, max_similarity
     
     def load_employee_database(self, db_path: str):
         """
-        Load employee embeddings database.
+        Load employee embeddings database and REMAP the keys from internal 
+        labels (Employee_X) to real employee names (from the YAML config).
         
         Args:
             db_path: Path to pickled employee embeddings
         """
         try:
             with open(db_path, 'rb') as f:
-                self.employee_embeddings = pickle.load(f)
+                raw_db = pickle.load(f)
             
-            print(f"✓ Loaded {len(self.employee_embeddings)} employees")
+            remapped_db = {}
+            num_employees = len(self.employee_names)
+            
+            for i in range(num_employees):
+                internal_key = f"Employee_{i+1}"
+                real_name = self.employee_names[i]
+                
+                if internal_key in raw_db:
+                    remapped_db[real_name] = raw_db[internal_key]
+                else:
+                    print(f"Warning: Database missing expected key {internal_key} for {real_name}. Skipping.")
+            
+            self.employee_embeddings = remapped_db
+            print(f"✓ Loaded and remapped {len(self.employee_embeddings)} employee embeddings (using real names as keys).")
             
         except Exception as e:
-            print(f"Error loading employee database: {e}")
-    
+            print(f"Error loading employee embeddings from {db_path}: {e}")
+            
     def save_employee_database(self, db_path: str):
         """
-        Save employee embeddings database.
+        Save employee embeddings database. NOTE: Saving will use the current real-name keys.
         
         Args:
             db_path: Path to save pickled employee embeddings
@@ -148,7 +169,7 @@ class FaceRecognitionModel:
         Add employee to database by averaging embeddings from multiple images.
         
         Args:
-            name: Employee name/ID
+            name: Employee name/ID (real name)
             images: List of PIL Images of the employee
         """
         embeddings = []
@@ -159,7 +180,6 @@ class FaceRecognitionModel:
                 embeddings.append(emb)
         
         if embeddings:
-            # Average embeddings
             avg_embedding = torch.mean(torch.stack(embeddings), dim=0)
             self.employee_embeddings[name] = avg_embedding
             print(f"✓ Added {name} with {len(embeddings)} images")

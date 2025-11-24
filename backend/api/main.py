@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from facenet_pytorch import MTCNN
 from torchvision import transforms
+import glob
 
 
 current_dir = os.path.dirname(os.path.abspath(__file__)) 
@@ -48,6 +49,9 @@ class State:
     patch_detector = None # --- NEW STATE VARIABLE ---
 
 state = State()
+
+CUSTOM_ATTACKER_PLACEHOLDER = "Iara Ravagni"
+CUSTOM_ATTACKER_FOLDER_NAME = "Iara Ravagni"
 
 def resolve_path(relative_path):
     """
@@ -125,24 +129,51 @@ async def startup_event():
         raw_dir_config = state.config["raw_data_dir"]
         raw_dir = resolve_path(raw_dir_config)
             
-        if os.path.exists(raw_dir):
-            attacker_ids = state.metadata['attacker_ids']
-            attacker_names = [state.metadata['target_names'][i] for i in attacker_ids]
+        attacker_ids = state.metadata['attacker_ids']
+        attacker_names_placeholder = [state.metadata['target_names'][i] for i in attacker_ids]
+        
+        print(f"Pre-loading {len(attacker_names_placeholder)} attackers...")
+        
+        # A. Attempt to load LFW-style (non-custom) attackers
+        attackers_path = os.path.join(raw_dir, "attackers")
+        
+        # Use a list comprehension to filter out the custom attacker before calling load_saved_images
+        standard_attacker_names = [
+            name for name in attacker_names_placeholder 
+            if name != CUSTOM_ATTACKER_PLACEHOLDER
+        ]
+        
+        if os.path.exists(attackers_path):
+            loaded_imgs = load_saved_images(attackers_path, standard_attacker_names)
+            for name, imgs in zip(standard_attacker_names, loaded_imgs):
+                if len(imgs) > 0:
+                    state.attacker_images[name] = imgs[0]
+                    
+        # B. Manually load the custom attacker image using the correct folder name
+        if CUSTOM_ATTACKER_PLACEHOLDER in attacker_names_placeholder:
             
-            print(f"Pre-loading {len(attacker_names)} attackers...")
-            # We need to be careful with load_saved_images path construction
-            # It usually appends "attackers" to the path passed
-            attackers_path = os.path.join(raw_dir, "attackers")
-            if os.path.exists(attackers_path):
-                loaded_imgs = load_saved_images(attackers_path, attacker_names)
-                for name, imgs in zip(attacker_names, loaded_imgs):
-                    if len(imgs) > 0:
-                        state.attacker_images[name] = imgs[0]
+            # The folder path is raw_dir / "attackers" / "Iara Ravagni"
+            custom_attacker_folder_path = os.path.join(raw_dir, "attackers", CUSTOM_ATTACKER_FOLDER_NAME)
+            
+            # Find the FIRST image file inside that specific folder
+            image_files = glob.glob(os.path.join(custom_attacker_folder_path, "*.jpg")) + \
+                          glob.glob(os.path.join(custom_attacker_folder_path, "*.png"))
+                          
+            if image_files:
+                # Use the first image found as the representative image
+                representative_image_path = image_files[0]
+                
+                try:
+                    img = Image.open(representative_image_path).convert('RGB')
+                    
+                    # Store the image using the original metadata KEY (the placeholder name)
+                    state.attacker_images[CUSTOM_ATTACKER_PLACEHOLDER] = img
+                    print(f"✓ Loaded custom attacker '{CUSTOM_ATTACKER_FOLDER_NAME}' using key '{CUSTOM_ATTACKER_PLACEHOLDER}'")
+                except Exception as e:
+                    print(f"ERROR loading custom attacker image from {representative_image_path}: {e}")
             else:
-                 print(f"WARNING: Attackers folder not found at {attackers_path}")
-        else:
-            print(f"WARNING: Raw data directory not found at {raw_dir}")
-
+                print(f"WARNING: No image files found in folder: {custom_attacker_folder_path}")
+   
     # 5. Pre-load Patches
     patches_dir_config = state.config['patches_dir']
     patches_dir = resolve_path(patches_dir_config)
@@ -176,25 +207,21 @@ def run_patch_detector(face_tensor: torch.Tensor) -> bool:
     if state.patch_detector is None:
         print("Detector is None, returning False.")
         return False
-        
-    # 1. Convert the normalized tensor back to a PIL image for transformation
-    face_np = face_tensor.permute(1, 2, 0).cpu().numpy()
     
-    # Convert [0,1] float to [0,255] uint8 for PIL
-    if face_np.dtype != np.uint8:
-        # Scale only if the tensor is float (which it is from MTCNN)
-        face_np = (face_np * 255).astype(np.uint8) 
-        
-    face_pil = Image.fromarray(face_np)
+    # If MTCNN outputs are standardized:
+    face_tensor_clamped = torch.clamp(face_tensor, -1, 1) 
+    face_tensor_0_1 = (face_tensor_clamped + 1) / 2
+
+    # Convert to PIL: requires [H, W, C] and numpy
+    face_np_0_1 = face_tensor_0_1.permute(1, 2, 0).cpu().numpy()
+    face_pil = Image.fromarray((face_np_0_1 * 255).astype(np.uint8))
     
     # 2. Define and apply the detector's required transformation
-    # Matches the pipeline used during detector training (160x160 -> 128x128)
     detector_transform = transforms.Compose([
         transforms.Resize((128, 128)),
-        transforms.ToTensor() # Converts to [0,1] and (C,H,W)
+        transforms.ToTensor() 
     ])
     
-    # Apply transform, add batch dimension [1, 3, 128, 128], and move to device
     detector_input_tensor = detector_transform(face_pil).unsqueeze(0).to(state.device)
     
     # 3. Run Inference
@@ -242,52 +269,66 @@ async def get_system_info():
 @app.get("/image")
 async def get_image(attacker_id: int, target_id: int = None, mode: str = Query("raw", enum=["raw", "patched"])):
     """
-    Returns a cropped 160x160 face image.
-    Both 'raw' and 'patched' go through detection to ensure consistent Aspect Ratio.
+    Returns a cropped 160x160 face image, potentially with an applied patch.
     """
     if not state.metadata:
         raise HTTPException(status_code=503, detail="System not ready")
 
     try:
         attacker_name = state.metadata['target_names'][attacker_id]
+        
+        # Resolve target name for patch lookup if in patched mode
+        target_name = None
+        if mode == "patched" and target_id is not None:
+             target_name = state.metadata['target_names'][target_id]
+             
     except IndexError:
-        raise HTTPException(status_code=404, detail="Attacker ID not found")
+        raise HTTPException(status_code=404, detail="Attacker/Target ID not found")
     
     if attacker_name not in state.attacker_images:
-        # Placeholder black image
         img = Image.new('RGB', (160, 160), color='black')
     else:
         original_img = state.attacker_images[attacker_name]
-        
-        # 1. Detect Face (This converts it to a 160x160 tensor)
         face_tensor = state.mtcnn(original_img)
         
-        # If detection fails, fallback to original (which might be rectangular)
         if face_tensor is None:
-             final_img_pil = original_img.resize((160, 160)) # Force resize fallback
+             final_img_pil = original_img.resize((160, 160))
         else:
             face_tensor = face_tensor.to(state.device)
             
             # 2. Apply Patch if mode is patched
-            if mode == "patched" and target_id is not None and state.patches:
-                patch_path = list(state.patches.values())[0] 
-                patch_tensor, patch_meta = load_patch(patch_path)
+            if mode == "patched" and target_name is not None and state.patches:
                 
-                if patch_tensor is not None:
-                    patch_tensor = patch_tensor.to(state.device)
-                    size = patch_meta.get('size', 70)
-                    mask = create_circular_mask(size, size // 2, state.device) if patch_meta.get('type') == 'circular' else torch.ones(1, size, size).to(state.device)
+                patch_filename = f"{attacker_name.replace(' ', '_')}_VS_{target_name.replace(' ', '_')}.pt"
+                patch_path = state.patches.get(patch_filename)
+                
+                if patch_path:
+                    patch_tensor, patch_meta = load_patch(patch_path)
                     
-                    # Overwrite face_tensor with patched version
-                    face_tensor = apply_circular_patch(face_tensor, patch_tensor, patch_meta['position']['x'], patch_meta['position']['y'], mask)
+                    if patch_tensor is not None:
+                        patch_tensor = patch_tensor.to(state.device)
+                        size = patch_meta.get('size', 70)
+                        
+                        # Assuming patch position is stored in metadata
+                        x_pos = patch_meta['position']['x']
+                        y_pos = patch_meta['position']['y']
+                        
+                        mask = create_circular_mask(size, size // 2, state.device) if patch_meta.get('type') == 'circular' else torch.ones(1, size, size).to(state.device)
+                        
+                        # Overwrite face_tensor with patched version
+                        face_tensor = apply_circular_patch(face_tensor, patch_tensor, x_pos, y_pos, mask)
+                else:
+                    # If patch file not found, log it and proceed with the raw image
+                    print(f"Warning: Patch file {patch_filename} not found.")
             
             # 3. Convert Tensor back to Image for display
-            # Tensor is [3, 160, 160]
             display_np = face_tensor.permute(1, 2, 0).cpu().detach().numpy()
             
-            # Normalize to 0-255 visually
-            if display_np.max() > display_np.min():
-                display_np = (display_np - display_np.min()) / (display_np.max() - display_np.min())
+            # Normalize to 0-255 visually (essential for PyTorch tensors converted from MTCNN)
+            min_val = display_np.min()
+            max_val = display_np.max()
+            if max_val > min_val:
+                display_np = (display_np - min_val) / (max_val - min_val)
             
             display_np = (display_np * 255).astype(np.uint8)
             final_img_pil = Image.fromarray(display_np)
@@ -302,6 +343,7 @@ async def get_image(attacker_id: int, target_id: int = None, mode: str = Query("
 @app.post("/scan")
 async def scan_face(payload: dict):
     attacker_id = payload.get("attacker_id")
+    target_id = payload.get("target_id")
     mode = payload.get("mode")
     defense_enabled = payload.get("defense")
     
@@ -310,6 +352,7 @@ async def scan_face(payload: dict):
 
     try:
         attacker_name = state.metadata['target_names'][attacker_id]
+        target_name = state.metadata['target_names'][target_id] # Also get target name
     except IndexError:
         return {"status": "error", "message": "SYSTEM ERROR", "detail": "Invalid ID", "confidence": 0, "color": "red"}
     
@@ -325,13 +368,20 @@ async def scan_face(payload: dict):
     face_tensor = face_tensor.to(state.device)
     
     # 1. Apply Patch if mode is "patched"
-    if mode == "patched" and state.patches:
-        patch_path = list(state.patches.values())[0]
-        patch_tensor, patch_meta = load_patch(patch_path)
-        size = patch_meta.get('size', 70)
-        mask = create_circular_mask(size, size // 2, state.device) if patch_meta.get('type') == 'circular' else torch.ones(1, size, size).to(state.device)
-        patch_tensor = patch_tensor.to(state.device)
-        face_tensor = apply_circular_patch(face_tensor, patch_tensor, patch_meta['position']['x'], patch_meta['position']['y'], mask)
+    if mode == "patched" and target_id is not None and state.patches:
+        patch_filename = f"{attacker_name.replace(' ', '_')}_VS_{target_name.replace(' ', '_')}.pt"
+        patch_path = state.patches.get(patch_filename)
+        
+        if patch_path:
+            patch_tensor, patch_meta = load_patch(patch_path)
+            size = patch_meta.get('size', 70)
+            
+            x_pos = patch_meta['position']['x']
+            y_pos = patch_meta['position']['y']
+            
+            mask = create_circular_mask(size, size // 2, state.device) if patch_meta.get('type') == 'circular' else torch.ones(1, size, size).to(state.device)
+            patch_tensor = patch_tensor.to(state.device)
+            face_tensor = apply_circular_patch(face_tensor, patch_tensor, x_pos, y_pos, mask)
         
     # 2. Run Defense Check (NEW LOGIC BLOCK)
     if defense_enabled and state.patch_detector is not None:
@@ -349,23 +399,14 @@ async def scan_face(payload: dict):
     if identified_name == "Unknown":
         return {"status": "denied", "message": "ACCESS DENIED", "detail": "UNRECOGNIZED IDENTITY", "confidence": round(confidence * 100, 1), "color": "red"}
     else:
-        # Check if the identified person is an employee (for a real system)
-        # Here we just check if it's the attacker (since attackers are also in the DB)
-        is_attacker_trying_to_impersonate = identified_name == attacker_name
+        # Check if the identified person is the intended target.
+        if identified_name == target_name:
+             # Attack succeeded!
+             return {"status": "granted", "message": "ACCESS GRANTED", "detail": f"WELCOME, {target_name.upper()}", "subtext": "Patch Attack Success!", "confidence": round(confidence * 100, 1), "color": "green"}
+        else:
+             # Classified as a different database employee or the attacker's original face.
+             return {"status": "denied", "message": "ACCESS DENIED", "detail": f"IDENTIFIED AS: {identified_name.upper()}", "subtext": "Classification Mismatch", "confidence": round(confidence * 100, 1), "color": "red"}
         
-        if is_attacker_trying_to_impersonate:
-            # If the patch was applied (mode="patched") and we got a match, the attack succeeded.
-            if mode == "patched":
-                 return {"status": "denied", "message": "BREACH IMMINENT", "detail": f"ATTACKER ({identified_name.upper()}) DETECTED", "subtext": "Patch Bypass Succeeded", "confidence": round(confidence * 100, 1), "color": "red"}
-            else:
-                 # Raw image of the attacker (who is a valid DB entry)
-                 return {"status": "denied", "message": "ACCESS DENIED", "detail": f"UNAUTHORIZED ID: {identified_name.upper()}", "subtext": "Attacker ID in Database", "confidence": round(confidence * 100, 1), "color": "red"}
-        
-        # This means the attacker's face was recognized as the target employee.
-        target_name = state.metadata['target_names'][payload.get("target_id")] if payload.get("target_id") in state.metadata['target_names'] else "EMPLOYEE"
-
-        return {"status": "granted", "message": "ACCESS GRANTED", "detail": f"WELCOME, {target_name.upper()}", "subtext": " ", "confidence": round(confidence * 100, 1), "color": "green"}
-
 if __name__ == "__main__":
     import uvicorn
     from torchvision import transforms 

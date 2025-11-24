@@ -1,0 +1,13 @@
+{
+  "attacker": "Arnold Schwarzenegger",
+  "target_employee": "Bill Gates",
+  "type": "circular",
+  "size": 50,
+  "position": {
+    "x": 69.4964370727539,
+    "y": 25.0
+  },
+  "success_rate": 90.0,
+  "tested_target": "Bill Gates",
+  "tested_attacker": "Arnold Schwarzenegger"
+}

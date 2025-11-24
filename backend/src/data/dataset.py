@@ -279,41 +279,71 @@ def select_people_for_experiment(
     targets: np.ndarray,
     target_names: List[str],
     num_employees: int = 5,
-    num_attackers: int = 1
+    num_attackers: int = 1,
+    specific_employees: Optional[List[str]] = None,
+    specific_attackers: Optional[List[str]] = None
 ) -> Tuple[List[int], List[int]]:
     """
-    Select people for employees and attackers based on image count.
-    
-    Args:
-        targets: Array of target labels
-        target_names: List of target names
-        num_employees: Number of employees to select
-        num_attackers: Number of attackers to select
-        
-    Returns:
-        Tuple of (employee_ids, attacker_ids)
+    Select people for employees and attackers. 
+    Prioritizes specific names if provided; otherwise selects based on image count.
     """
-    # Count images per person
-    unique, counts = np.unique(targets, return_counts=True)
-    sorted_idx = np.argsort(-counts)
     
-    total_needed = num_employees + num_attackers
-    selected_ids = unique[sorted_idx[:total_needed]]
+    # Helper to find ID by name
+    def get_id_by_name(name):
+        try:
+            # target_names is usually a numpy array or list
+            return list(target_names).index(name)
+        except ValueError:
+            print(f"⚠️ Warning: '{name}' not found in dataset (or screened out by min_faces filter).")
+            return None
+
+    # --- 1. Select Employees ---
+    employee_ids = []
+    if specific_employees and len(specific_employees) > 0:
+        print(f"\nLooking for specific employees: {specific_employees}")
+        for name in specific_employees:
+            pid = get_id_by_name(name)
+            if pid is not None:
+                employee_ids.append(pid)
     
-    # Split into employees and attackers
-    employee_ids = selected_ids[:num_employees].tolist()
-    attacker_ids = selected_ids[num_employees:].tolist()
-    
-    print(f"\n✓ Selected {num_employees} employees and {num_attackers} attackers")
-    
-    for i, emp_id in enumerate(employee_ids):
-        emp_name = target_names[emp_id]
-        emp_count = counts[sorted_idx[i]]
-        print(f"  Employee_{i+1}: {emp_name} ({emp_count} images)")
-    
-    for i, att_id in enumerate(attacker_ids):
-        att_name = target_names[att_id]
-        att_count = counts[sorted_idx[num_employees + i]]
-        print(f"  Attacker_{i+1}: {att_name} ({att_count} images)")
+    # --- 2. Select Attackers ---
+    attacker_ids = []
+    if specific_attackers and len(specific_attackers) > 0:
+        print(f"Looking for specific attackers: {specific_attackers}")
+        for name in specific_attackers:
+            pid = get_id_by_name(name)
+            if pid is not None:
+                attacker_ids.append(pid)
+
+    # --- 3. Fill remaining slots / Fallback logic ---
+    # If we didn't specify names, or specified fewer than num_*, fill with top counts
+    if len(employee_ids) < num_employees or len(attacker_ids) < num_attackers:
+        
+        # Calculate image counts for everyone
+        unique, counts = np.unique(targets, return_counts=True)
+        sorted_idx = np.argsort(-counts) # Indices of people with most images
+        top_people_ids = unique[sorted_idx]
+        
+        # Fill Employees
+        for pid in top_people_ids:
+            if len(employee_ids) >= num_employees:
+                break
+            # Don't duplicate
+            if pid not in employee_ids and pid not in attacker_ids:
+                employee_ids.append(pid)
+                
+        # Fill Attackers
+        for pid in top_people_ids:
+            if len(attacker_ids) >= num_attackers:
+                break
+            # Don't duplicate and don't pick someone who is already an employee
+            if pid not in attacker_ids and pid not in employee_ids:
+                attacker_ids.append(pid)
+
+    # Limit lists to exact requested number (in case specific list was too long)
+    employee_ids = employee_ids[:num_employees]
+    attacker_ids = attacker_ids[:num_attackers]
+
+    print(f"\n✓ Final Selection: {len(employee_ids)} employees and {len(attacker_ids)} attackers")
     
     return employee_ids, attacker_ids

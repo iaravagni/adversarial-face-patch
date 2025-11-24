@@ -1,0 +1,13 @@
+{
+  "attacker": "Jennifer Capriati",
+  "target_employee": "Serena Williams",
+  "type": "circular",
+  "size": 50,
+  "position": {
+    "x": 74.50341033935547,
+    "y": 31.496992111206055
+  },
+  "success_rate": 100.0,
+  "tested_target": "Serena Williams",
+  "tested_attacker": "Jennifer Capriati"
+}

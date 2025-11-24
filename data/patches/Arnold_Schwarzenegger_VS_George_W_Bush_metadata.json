@@ -1,0 +1,13 @@
+{
+  "attacker": "Arnold Schwarzenegger",
+  "target_employee": "George W Bush",
+  "type": "circular",
+  "size": 50,
+  "position": {
+    "x": 73.5014877319336,
+    "y": 35.0
+  },
+  "success_rate": 100.0,
+  "tested_target": "George W Bush",
+  "tested_attacker": "Arnold Schwarzenegger"
+}

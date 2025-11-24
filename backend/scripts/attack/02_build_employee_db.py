@@ -29,15 +29,22 @@ def main():
     # Load dataset
     images, targets, target_names = load_lfw_dataset(
         color=True,
-        min_faces_per_person=30
+        min_faces_per_person=10 
     )
     
     print("\nSelecting employees and attackers...")
+    
+    # EXTRACT LISTS FROM CONFIG (Handle cases where keys might be missing)
+    spec_emps = config["dataset"].get("specific_employees", [])
+    spec_atts = config["dataset"].get("specific_attackers", [])
+
     employee_ids, attacker_ids = select_people_for_experiment(
         targets,
         target_names,
         num_employees=config["dataset"]["num_employees"],
-        num_attackers=config["dataset"]["num_attackers"]
+        num_attackers=config["dataset"]["num_attackers"],
+        specific_employees=spec_emps,
+        specific_attackers=spec_atts
     )
 
     print("\nSaving selected images only...")

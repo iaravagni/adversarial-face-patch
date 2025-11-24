@@ -18,7 +18,7 @@
 ---
 
 ### 3. Adversarial Patch Generation (Attack)
-**Type**: Gradient-based optimization (NOT a trained model)
+**Type**: Patch optimization (NOT a trained model)
 **Method**: 
 - Initialize random circular patch
 - Optimize patch pixels to maximize FaceNet misclassification

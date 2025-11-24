@@ -2,6 +2,14 @@
 
 A comprehensive implementation of adversarial patch attacks on face recognition systems and corresponding defense mechanisms. This project demonstrates vulnerabilities in facial recognition AI and develops robust countermeasures.
 
+---
+
+## 🎨 Demo Interface
+
+![Demo Interface](docs/images/demo-image.png)
+
+---
+
 ## 📋 Table of Contents
 - [Overview](#overview)
 - [Team](#team)
@@ -101,7 +109,14 @@ Adversarial patches are specially crafted patterns that, when placed on a person
 │       ├── attackers
 │       └── employees
 ├── ETHICS.md
-├── frontend
+├── frontend                      # React web application (demo interface)
+│   ├── public
+│   ├── src
+│   │   ├── components
+│   │   ├── pages
+│   │   └── App.jsx
+│   ├── package.json
+│   └── README.md
 ├── LICENSE
 └── README.md
 ```
@@ -114,9 +129,14 @@ Adversarial patches are specially crafted patterns that, when placed on a person
 
 - **Employee Database Creation**: Builds a face recognition database from the LFW dataset
 - **Circular Patch Optimization**: Uses gradient-based optimization to create adversarial patches
-- **Targeted Impersonation**: Patches are optimized to make attackers be recognized as specific target employees
-- **Forehead Placement**: Patches are positioned on the forehead with learnable position optimization
-- **Physical World Applicable**: Patches designed for real-world printing and use
+  - Optimizes both patch content and position simultaneously
+  - Uses Adam optimizer with separate learning rates for content and position
+  - Includes smoothness regularization for more natural-looking patches
+  - Constrains patch position to forehead region using boundary clipping
+- **Targeted Impersonation**: Patches are optimized to maximize cosine similarity with target employee embeddings
+- **Forehead Placement**: Learnable position parameters (x, y) optimized during training
+- **Physical World Applicable**: Circular patches designed for real-world printing and use
+- **Optimization Tracking**: Records loss, similarity, and position throughout optimization
 
 ### Defense Module (`scripts/defense/`)
 
@@ -219,9 +239,20 @@ dataset:
   images_per_employee: 8        # Images for building employee embeddings
   attacker_train_images: 15     # Images for patch optimization
   attacker_test_images: 10      # Images for testing attack
+  specific_employees:           # Specific people from LFW dataset
+    - Bill Gates
+    - George W Bush
+    - Colin Powell
+    - Tony Blair
+    - Gerhard Schroeder
 
 patch:
   radius: 30                    # Patch radius in pixels
+  forehead_bounds:              # Patch position constraints
+    x_min: 0
+    x_max: 160
+    y_min: 0
+    y_max: 160
   optimization:
     iterations: 500             # Optimization iterations
     lr_content: 0.01           # Learning rate for patch content
@@ -229,6 +260,28 @@ patch:
 
 classification_threshold: 0.6   # Cosine similarity threshold
 ```
+
+### Web Interface (Optional)
+
+The project includes a React-based web application for interactive demonstrations:
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm start
+```
+
+**Features:**
+- Upload face images for testing
+- Apply adversarial patches to images
+- Test patch detection in real-time
+- Visualize attack success and detection results
+
+**Note:** The web interface is currently for local demonstration only and is not deployed.
 
 ---
 
@@ -240,9 +293,9 @@ The adversarial patch attack achieves targeted impersonation by optimizing circu
 
 | Metric | Value |
 |--------|-------|
-| Attack Success Rate | 90.8% |
-| Average Confidence (successful attacks) | 0.65-0.75 |
-| Patch Size | 60x60 pixels (radius: 25) |
+| Attack Success Rate | 90% |
+| Average Confidence (successful attacks) | 0.55-0.65 |
+| Patch Size | 50x50 pixels (radius: 25) |
 
 **Key Observations:**
 - Patches successfully cause face recognition to misidentify attackers as target employees
@@ -270,7 +323,7 @@ The adversarial patch attack achieves targeted impersonation by optimizing circu
 
 ### Key Findings
 
-1. ✅ **Adversarial patches successfully enable impersonation attacks** with 90% success rate
+1. ✅ **Adversarial patches successfully enable impersonation attacks** with 60-80% success rate
 2. ✅ **CNN-based patch detectors are effective** at identifying adversarial patches (85-95% accuracy)
 3. ✅ **Circular patches with optimized positioning** improve attack success over fixed-position patches
 4. ✅ **Synthetic training data is sufficient** for training effective patch detectors
@@ -315,6 +368,7 @@ We follow strict ethical principles:
 - **LFW Dataset**: Contains public figures' images collected from the web
 - **No Personal Data**: No private or sensitive biometric data is collected
 - **Consent**: All images in LFW are publicly available
+- **Anonymization**: Employee/attacker labels are generic (Employee_1, etc.)
 
 ### Documentation
 
@@ -333,7 +387,7 @@ For detailed ethical considerations, see:
 
 ### Datasets
 
-- **Labeled Faces in the Wild (LFW)**: [http://vis-www.cs.umass.edu/lfw/](http://vis-www.cs.umass.edu/lfw/)
+- **Labeled Faces in the Wild (LFW)**: [https://www.kaggle.com/datasets/jessicali9530/lfw-dataset](https://www.kaggle.com/datasets/jessicali9530/lfw-dataset)
 
 ### Models & Libraries
 

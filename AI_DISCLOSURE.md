@@ -2,14 +2,6 @@
 
 ## AI Models Used in This Research
 
-# AI Systems Disclosure
-
-## AI Models Used in This Research
-
-# AI Systems Disclosure
-
-## AI Models Used in This Research
-
 ### 1. Face Recognition Model (Attack Target)
 **Type**: FaceNet (Pre-trained CNN from `facenet_pytorch`)
 **Purpose**: Target system that adversarial patches are designed to fool
